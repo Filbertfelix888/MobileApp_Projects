@@ -22,6 +22,7 @@ Follow these steps in order. Stop on any failed command, ambiguity, unsafe state
 ## 3. Commit
 
 - Stage only reviewed task-related paths or hunks, preserving the user's work. Verify `git diff --cached` contains exactly the intended changes and no secrets. Stop if the staged diff is empty. Create one commit with a short, specific Conventional Commit message, such as `fix: validate login response`. Do not amend.
+- Use the user's configured Git identity. Do not add AI names, attribution, or `Co-authored-by` trailers to commit messages. Do not change or impersonate the configured identity.
 - Confirm `git status --porcelain=v1` is empty, including untracked files. Otherwise stop; do not stash, clean, or discard anything.
 
 ## 4. Synchronize
