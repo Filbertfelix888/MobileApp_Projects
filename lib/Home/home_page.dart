@@ -15,6 +15,7 @@ class _HomePageState extends State<HomePage> {
   List<dynamic> _boardsData = [];
   int _totalPages = 1;
   int _currentPage = 1;
+  int _requestId = 0;
 
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
@@ -32,25 +33,42 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+
   // Fetching data boards dari backend Golang
   Future<void> _fetchBoardsData() async {
+    final requestId = ++_requestId;
+    final search = _searchController.text;
+    final page = _currentPage;
     setState(() => _isLoading = true);
 
     try {
       final response = await BoardService.getMyBoards(
-        search: _searchController.text,
-        page: _currentPage,
+        search: search,
+        page: page,
         limit: 10,
       );
-
-      if (mounted) {
-        setState(() {
-          _boardsData = response['data']['data'] ?? [];
-          _totalPages = response['data']['meta']?['total_pages'] ?? 1;
-        });
+      if (!mounted || requestId != _requestId ||
+          search != _searchController.text || page != _currentPage) {
+        return;
       }
+
+      final data = response is Map ? response['data'] : null;
+      final meta = response is Map ? response['meta'] : null;
+      final totalPages = meta is Map ? meta['total_pages'] : null;
+      final validTotalPages = totalPages is int && totalPages > 0 ? totalPages : 1;
+      if (page > validTotalPages) {
+        setState(() => _currentPage = validTotalPages);
+        await _fetchBoardsData();
+        return;
+      }
+      setState(() {
+        _boardsData = data is List ? data : <dynamic>[];
+        _totalPages = validTotalPages;
+      });
     } catch (error) {
-      if (mounted) {
+      if (error is! UnauthorizedException &&
+          mounted &&
+          requestId == _requestId) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error.toString().replaceAll('Exception: ', '')),
@@ -59,7 +77,7 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } finally {
-      if (mounted) {
+      if (mounted && requestId == _requestId) {
         setState(() => _isLoading = false);
       }
     }
@@ -97,18 +115,33 @@ class _HomePageState extends State<HomePage> {
 
     if (confirm != true) return;
 
+
+    final deletePage = _currentPage;
+    final deleteSearch = _searchController.text;
+    final deleteRequestId = _requestId;
+    final deletedLastBoardOnPage = _boardsData.length == 1;
     try {
       await BoardService.deleteBoard(boardId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Board berhasil dihapus')),
         );
+        if (_currentPage == deletePage &&
+            _searchController.text == deleteSearch &&
+            _requestId == deleteRequestId &&
+            deletedLastBoardOnPage &&
+            _currentPage > 1) {
+          _currentPage--;
+        }
         _fetchBoardsData();
       }
     } catch (error) {
-      if (mounted) {
+      if (error is! UnauthorizedException && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal menghapus board'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(error.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -223,9 +256,15 @@ class _HomePageState extends State<HomePage> {
                               final publicId = data['public_id'] ?? '';
                               final title = data['title'] ?? '-';
                               final description = data['description'] ?? '-';
-                              final createdAt = data['created_at'] != null
-                                  ? data['created_at'].toString().split('T')[0]
-                                  : '-';
+                              final createdText = data['created_at']?.toString() ?? '';
+                              final createdAt = createdText.isEmpty
+                                  ? '-'
+                                  : DateTime.tryParse(createdText)
+                                          ?.toLocal()
+                                          .toIso8601String()
+                                          .split('T')
+                                          .first ??
+                                      createdText.split('T').first;
 
                               return DataRow(
                                 cells: [
