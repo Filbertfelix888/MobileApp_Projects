@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
+import '../environment_config.dart';
 import '../network.dart';
-import '../session_manager.dart';
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -16,34 +15,90 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   bool _obscurePassword = true;
+  int _requestId = 0;
 
   final RegExp _emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
 
   Future<void> _onSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final requestId = ++_requestId;
+    bool sessionPersistenceAttempted = false;
+    int? requestGeneration;
     setState(() => _isLoading = true);
 
     try {
+      final environment = await EnvironmentConfig.snapshot();
+      if (!mounted || requestId != _requestId) return;
+      requestGeneration = environment.generation;
       final payload = {
         'email': _emailController.text,
         'password': _passwordController.text,
       };
 
-      // 1. Panggil API Golang Backend (/v1/auth/login)
-      final response = await AuthService.login(payload);
+      final response = await AuthService.login(
+        payload,
+        environmentSnapshot: environment,
+      );
 
-      // 2. Simpan session token & user data jika login berhasil
-      if (response['data'] != null) {
-        await SessionManager.setSession(response['data']);
+      if (requestId != _requestId ||
+          EnvironmentConfig.generation != environment.generation) {
+        return;
       }
+      final data = response is Map ? response['data'] : null;
+      if (data is! Map<String, dynamic> ||
+          data['access_token'] is! String ||
+          (data['access_token'] as String).isEmpty) {
+        throw StateError('Login response did not contain a valid access token');
+      }
+      sessionPersistenceAttempted = true;
+      final saved = await EnvironmentConfig.saveSessionIfCurrent(
+        environment.generation,
+        environment.environment,
+        data,
+      );
+      if (!saved) return;
 
-      if (mounted) {
+      if (mounted &&
+          requestId == _requestId &&
+          EnvironmentConfig.generation == environment.generation) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login Berhasil!')),
         );
         Navigator.pushReplacementNamed(context, '/');
       }
+    } catch (error) {
+      if (mounted &&
+          requestId == _requestId &&
+          (requestGeneration == null ||
+              requestGeneration == EnvironmentConfig.generation)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+        if (sessionPersistenceAttempted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/login',
+            (_) => false,
+          );
+        }
+      }
+    } finally {
+      if (mounted && requestId == _requestId) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _selectEnvironment(BackendEnvironment environment) async {
+    final previousGeneration = EnvironmentConfig.generation;
+    if (EnvironmentConfig.selected.value == environment) return;
+    ++_requestId;
+    setState(() => _isLoading = false);
+    try {
+      await EnvironmentConfig.select(environment);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -54,8 +109,10 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (mounted &&
+          EnvironmentConfig.generation != previousGeneration &&
+          Navigator.of(context).canPop()) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
       }
     }
   }
@@ -96,6 +153,42 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: EnvironmentConfig.switching,
+                        builder: (context, switching, child) {
+                          return ValueListenableBuilder<BackendEnvironment>(
+                            valueListenable: EnvironmentConfig.selected,
+                            builder: (context, environment, child) {
+                              return DropdownButtonFormField<BackendEnvironment>(
+                                key: ValueKey(
+                                  '${environment.name}:${EnvironmentConfig.generation}:$switching',
+                                ),
+                                initialValue: environment,
+                                decoration: const InputDecoration(
+                                  labelText: 'Environment',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: BackendEnvironment.qa,
+                                    child: Text('QA'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: BackendEnvironment.dev,
+                                    child: Text('DEV'),
+                                  ),
+                                ],
+                                onChanged: switching
+                                    ? null
+                                    : (value) {
+                                        if (value != null) _selectEnvironment(value);
+                                      },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
@@ -129,31 +222,54 @@ class _LoginPageState extends State<LoginPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 42,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _onSubmit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1976D2),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Text('Masuk ke akun Anda', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        ),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: EnvironmentConfig.switching,
+                        builder: (context, switching, child) {
+                          return SizedBox(
+                            width: double.infinity,
+                            height: 42,
+                            child: ElevatedButton(
+                              onPressed: _isLoading || switching ? null : _onSubmit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1976D2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Masuk ke akun Anda',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: TextButton(
-                          onPressed: _isLoading ? null : () => Navigator.pushNamed(context, '/signup'),
-                          child: const Text('Daftar baru', style: TextStyle(color: Color(0xFF1976D2))),
-                        ),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: EnvironmentConfig.switching,
+                        builder: (context, switching, child) {
+                          return SizedBox(
+                            width: double.infinity,
+                            child: TextButton(
+                              onPressed: _isLoading || switching
+                                  ? null
+                                  : () => Navigator.pushNamed(context, '/signup'),
+                              child: const Text('Daftar baru', style: TextStyle(color: Color(0xFF1976D2))),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

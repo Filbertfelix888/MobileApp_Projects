@@ -1,89 +1,101 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'environment_config.dart';
 import 'session_manager.dart';
 
-class Network {
-  // Ganti IP sesuai perangkat yang Anda gunakan:
-  // - Android Emulator: http://10.0.2.2:3030
-  // - iOS Simulator / Web / Windows: http://127.0.0.1:3030
-  // - HP Fisik: http://192.168.x.x:3030 (IP Laptop Anda)
-  static const String baseUrl = 'http://10.0.2.2:3030';
+typedef NetworkEnvironment = ({
+  String baseUrl,
+  String environment,
+  int generation,
+});
 
-  // Helper private untuk mengambil header standar + Authorization Token
-  static Future<Map<String, String>> _getHeaders() async {
-    final token = await SessionManager.getToken();
+class Network {
+  static http.Client client = http.Client();
+
+  static String get baseUrl => EnvironmentConfig.baseUrl;
+
+  static Future<Map<String, String>> _getHeaders(
+    NetworkEnvironment environment, {
+    bool includeAuth = true,
+  }) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
+    if (includeAuth) {
+      final token = await SessionManager.getTokenForEnvironment(
+        environment.environment,
+      );
+      if (token != null) headers['Authorization'] = 'Bearer $token';
     }
     return headers;
   }
 
-// --- 1. METHOD GET ---
   static Future<dynamic> get(String endpoint) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = await _getHeaders();
-
-    final response = await http.get(url, headers: headers);
+    final environment = await EnvironmentConfig.snapshot();
+    final url = Uri.parse('${environment.baseUrl}$endpoint');
+    final headers = await _getHeaders(environment);
+    final response = await client.get(url, headers: headers);
     final responseData = jsonDecode(response.body);
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return responseData;
-    } else {
-      throw Exception(responseData['message'] ?? 'Gagal mengambil data dari server');
     }
+    throw Exception(responseData['message'] ?? 'Gagal mengambil data dari server');
   }
 
-  // --- 2. METHOD POST ---
-  static Future<dynamic> post(String endpoint, Map<String, dynamic> payload) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = await _getHeaders();
-
-    final response = await http.post(
+  static Future<dynamic> post(
+    String endpoint,
+    Map<String, dynamic> payload, {
+    NetworkEnvironment? environmentSnapshot,
+    bool includeAuth = true,
+  }) async {
+    final environment = environmentSnapshot ?? await EnvironmentConfig.snapshot();
+    final url = Uri.parse('${environment.baseUrl}$endpoint');
+    final headers = await _getHeaders(environment, includeAuth: includeAuth);
+    final response = await client.post(
       url,
       headers: headers,
       body: jsonEncode(payload),
     );
-
     final responseData = jsonDecode(response.body);
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return responseData;
-    } else {
-      throw Exception(responseData['message'] ?? 'Gagal mengirim data ke server');
     }
+    throw Exception(responseData['message'] ?? 'Gagal mengirim data ke server');
   }
 
-  // --- 3. METHOD DELETE ---
   static Future<dynamic> delete(String endpoint) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = await _getHeaders();
-
-    final response = await http.delete(url, headers: headers);
+    final environment = await EnvironmentConfig.snapshot();
+    final url = Uri.parse('${environment.baseUrl}$endpoint');
+    final headers = await _getHeaders(environment);
+    final response = await client.delete(url, headers: headers);
     final responseData = jsonDecode(response.body);
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return responseData;
-    } else {
-      throw Exception(responseData['message'] ?? 'Gagal menghapus data dari server');
     }
+    throw Exception(responseData['message'] ?? 'Gagal menghapus data dari server');
   }
 }
 
-// -----------------------------------------------------------------------------
-// SERVICES
-// -----------------------------------------------------------------------------
-
 class AuthService {
-  static Future<dynamic> login(Map<String, dynamic> payload) {
-    return Network.post('/v1/auth/login', payload);
+  static Future<dynamic> login(
+    Map<String, dynamic> payload, {
+    NetworkEnvironment? environmentSnapshot,
+  }) {
+    return Network.post(
+      '/v1/auth/login',
+      payload,
+      environmentSnapshot: environmentSnapshot,
+      includeAuth: false,
+    );
   }
 
   static Future<dynamic> signUp(Map<String, dynamic> payload) {
-    return Network.post('/v1/auth/register', payload);
+    return Network.post(
+      '/v1/auth/register',
+      payload,
+      includeAuth: false,
+    );
   }
 }
 
