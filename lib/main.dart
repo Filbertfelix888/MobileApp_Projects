@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'System Login/login_page.dart';
 import 'System Login/register_page.dart';
 import 'Home/home_page.dart';
-import 'Project/project_detail_page.dart';
-import 'app_navigation.dart';
 import 'environment_config.dart';
 import 'session_manager.dart';
 import 'ui/Theme/theme_notifier.dart';
@@ -14,25 +12,14 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key, this.homePage = const HomePage()});
 
-  static final GlobalKey<NavigatorState> _navigatorKey =
-      GlobalKey<NavigatorState>();
-
   final Widget homePage;
 
   @override
   Widget build(BuildContext context) {
-    AppNavigation.registerLoginNavigator((warning) {
-      _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-        '/login',
-        (_) => false,
-        arguments: warning,
-      );
-    });
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeNotifier.themeMode,
       builder: (context, currentMode, child) {
         return MaterialApp(
-          navigatorKey: _navigatorKey,
           title: 'Mobile App',
           debugShowCheckedModeBanner: false,
           themeMode: currentMode,
@@ -59,18 +46,7 @@ class MyApp extends StatelessWidget {
           routes: {
             '/login': (context) => const LoginPage(),
             '/signup': (context) => const RegisterPage(),
-            '/': (context) => _ProtectedRoute(child: homePage),
-          },
-          onGenerateRoute: (settings) {
-            final name = settings.name ?? '';
-            const prefix = '/projects/';
-            if (!name.startsWith(prefix) || name.length == prefix.length) return null;
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => _ProtectedRoute(
-                child: ProjectDetailPage(boardId: name.substring(prefix.length)),
-              ),
-            );
+            '/': (context) => _ProtectedHomeRoute(homePage: homePage),
           },
         );
       },
@@ -78,16 +54,16 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class _ProtectedRoute extends StatefulWidget {
-  const _ProtectedRoute({required this.child});
+class _ProtectedHomeRoute extends StatefulWidget {
+  const _ProtectedHomeRoute({required this.homePage});
 
-  final Widget child;
+  final Widget homePage;
 
   @override
-  State<_ProtectedRoute> createState() => _ProtectedRouteState();
+  State<_ProtectedHomeRoute> createState() => _ProtectedHomeRouteState();
 }
 
-class _ProtectedRouteState extends State<_ProtectedRoute> {
+class _ProtectedHomeRouteState extends State<_ProtectedHomeRoute> {
   late final Future<Map<String, dynamic>?> _session = _loadSession();
 
   Future<Map<String, dynamic>?> _loadSession() async {
@@ -118,7 +94,7 @@ class _ProtectedRouteState extends State<_ProtectedRoute> {
                 !snapshot.hasError &&
                 token is String &&
                 token.isNotEmpty
-            ? widget.child
+            ? widget.homePage
             : const LoginPage();
       },
     );

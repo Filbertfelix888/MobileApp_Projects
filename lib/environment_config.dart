@@ -6,12 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'session_manager.dart';
 
 enum BackendEnvironment { qa, dev }
-typedef EnvironmentSnapshot = ({
-  String baseUrl,
-  String environment,
-  int generation,
-  String? accessToken,
-});
 
 class EnvironmentConfig {
   static const String _preferenceKey = 'BACKEND_ENVIRONMENT';
@@ -83,55 +77,24 @@ class EnvironmentConfig {
       }
     }
   }
-  static Future<EnvironmentSnapshot> snapshot({
-    bool includeAuth = false,
-  }) async {
+  static Future<({String baseUrl, String environment, int generation})> snapshot() async {
     await initialize();
     while (switching.value) {
       await _switchCompletion?.future;
     }
-    return _serialize(() async {
-      final environment = selected.value.name;
-      return (
-        baseUrl: baseUrl,
-        environment: environment,
-        generation: _generation,
-        accessToken: includeAuth
-            ? await SessionManager.getTokenForEnvironment(environment)
-            : null,
-      );
-    });
+    final queued = _queue;
+    if (queued != null) await queued;
+    return (
+      baseUrl: baseUrl,
+      environment: selected.value.name,
+      generation: _generation,
+    );
   }
 
   static Future<void> logout() async {
     await initialize();
-    await _serialize(() async {
-      _generation++;
-      await SessionManager.clearSession();
-    });
-  }
-
-  static Future<int?> invalidateSessionIfCurrent(
-    int generation,
-    String environment,
-  ) async {
-    await initialize();
-    return _serialize(() async {
-      if (_generation != generation || selected.value.name != environment) {
-        return null;
-      }
-      _generation++;
-      try {
-        await SessionManager.clearSession();
-      } catch (error) {
-        throw SessionInvalidationFailure(
-          _generation,
-          'Could not clear saved session ($error). This device may restore '
-          'the session after restart.',
-        );
-      }
-      return _generation;
-    });
+    _generation++;
+    await _serialize(SessionManager.clearSession);
   }
 
   static Future<bool> saveSessionIfCurrent(
@@ -141,15 +104,9 @@ class EnvironmentConfig {
   ) async {
     await initialize();
     return _serialize(() async {
-      if (_generation != generation || selected.value.name != environment) {
-        return false;
-      }
+      if (_generation != generation || selected.value.name != environment) return false;
       await SessionManager.setSession(session, environment: environment);
-      if (_generation != generation || selected.value.name != environment) {
-        return false;
-      }
-      _generation++;
-      return true;
+      return _generation == generation && selected.value.name == environment;
     });
   }
 
@@ -158,13 +115,4 @@ class EnvironmentConfig {
     _queue = result.then<void>((_) {}, onError: (Object _, StackTrace stack) {});
     return result;
   }
-}
-class SessionInvalidationFailure implements Exception {
-  final int generation;
-  final String message;
-
-  const SessionInvalidationFailure(this.generation, this.message);
-
-  @override
-  String toString() => message;
 }

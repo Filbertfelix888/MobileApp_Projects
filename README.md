@@ -14,7 +14,7 @@ This Flutter application is the mobile frontend for a project management system.
 
 - Login and registration forms with input validation and request feedback.
 - Local session persistence after login when the response contains session data; logout clears the session.
-- Project list, search, pagination, creation, deletion, and protected detail navigation.
+- Named routes for login, registration, and a placeholder dashboard.
 
 Form state is local to each `StatefulWidget`. Network and session operations use static methods.
 
@@ -65,14 +65,14 @@ The login screen lets users select a persisted backend environment:
 - **QA** (fresh-install default): `http://43.173.10.180:3030`
 - **DEV**: `http://10.0.2.2:3030` (Android emulator address for the host machine)
 
-Requests use the selected base URL. Switching environments invalidates the current session; users must log in again. Existing sessions without an environment tag are invalidated on first initialization. The configured endpoints use plain HTTP, not TLS; credentials and bearer tokens can be intercepted on untrusted networks. Use only for QA/development, and do not send production credentials.
+GET, POST, DELETE, login, and registration use the selected base URL while retaining their existing `/v1/...` paths. Changing environment clears only `SESSION_KEY`; users must log in again. Existing sessions without an environment tag are invalidated on first initialization. The configured endpoints use plain HTTP, not TLS; credentials and bearer tokens can be intercepted on untrusted networks. Use only for QA/development, and do not send production credentials.
 
 The app sends JSON POST requests to:
 
 - `/v1/auth/login`
 - `/v1/auth/register`
 
-Authenticated project requests use `/api/v1/boards`. An HTTP 401 invalidates only the session used by that request and returns the app to login; an older response cannot invalidate a newer session. Project list and detail dates are displayed in the device's local time zone. Do not put credentials or tokens in the repository.
+The client decodes responses as JSON, including error responses. If a stored session contains `access_token`, requests include it as a bearer token. Do not put credentials or tokens in the repository.
 
 ## Testing
 
@@ -87,11 +87,10 @@ flutter test
 
 ## Development Status
 
-Authentication and project screens are implemented. Task management remains planned. Runtime behavior depends on a reachable backend.
+Authentication screens and session handling are implemented in the source. The dashboard is a static placeholder; project and task management remain planned. Runtime behavior depends on a reachable backend and has not been verified by this documentation.
 
 ## Known Limitations
 
 - The environment URLs use plain HTTP; production use requires a secure HTTPS endpoint.
-- If session invalidation cannot write the marker or remove saved credentials, the app warns that the old session may return after restart.
 - Android release builds currently use debug signing and require proper release signing before distribution.
 - Tests do not replace end-to-end backend testing.

@@ -15,8 +15,6 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   bool _obscurePassword = true;
-  String? _sessionWarning;
-  bool _sessionWarningRead = false;
   int _requestId = 0;
 
   final RegExp _emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
@@ -63,8 +61,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (mounted &&
           requestId == _requestId &&
-          EnvironmentConfig.generation == environment.generation + 1 &&
-          EnvironmentConfig.selected.value.name == environment.environment) {
+          EnvironmentConfig.generation == environment.generation) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login Berhasil!')),
         );
@@ -121,15 +118,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_sessionWarningRead) {
-      _sessionWarning = ModalRoute.of(context)?.settings.arguments as String?;
-      _sessionWarningRead = true;
-    }
-  }
-
-  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -164,16 +152,6 @@ class _LoginPageState extends State<LoginPage> {
                           
                         ),
                       ),
-                      if (_sessionWarning != null)
-                        MaterialBanner(
-                          content: Text(_sessionWarning!),
-                          actions: [
-                            TextButton(
-                              onPressed: () => setState(() => _sessionWarning = null),
-                              child: const Text('OK'),
-                            ),
-                          ],
-                        ),
                       const SizedBox(height: 16),
                       ValueListenableBuilder<bool>(
                         valueListenable: EnvironmentConfig.switching,

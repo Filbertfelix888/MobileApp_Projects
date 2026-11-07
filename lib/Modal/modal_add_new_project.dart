@@ -75,7 +75,7 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
         widget.onSuccess(); // Refresh data di home_page
       }
     } catch (error) {
-      if (error is! UnauthorizedException && mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error.toString().replaceAll('Exception: ', '')),
