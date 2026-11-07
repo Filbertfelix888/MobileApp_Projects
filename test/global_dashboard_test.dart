@@ -1,10 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// The platform store allows simulating failed preference reads and writes.
+// ignore: depend_on_referenced_packages
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 import 'package:my_mobile_app/Dashboard/dashboard_service.dart';
 import 'package:my_mobile_app/Home/home_page.dart';
@@ -15,6 +19,7 @@ import 'package:my_mobile_app/System Login/login_page.dart';
 import 'package:my_mobile_app/System Login/register_page.dart';
 import 'package:my_mobile_app/ui/Theme/theme_notifier.dart';
 import 'package:my_mobile_app/ui/Theme/theme_tonggle.dart';
+import 'package:my_mobile_app/Home/navbar_page.dart';
 import 'package:my_mobile_app/ui/Theme/app_theme.dart';
 
 const _base = 'http://43.173.10.180:3030';
@@ -35,6 +40,29 @@ http.Response _boards() => _json({
   ],
   'meta': {'page': 1, 'limit': 10, 'total': 1, 'total_pages': 1},
 });
+
+class _ThemeStore extends InMemorySharedPreferencesStore {
+  _ThemeStore(super.data) : super.withData();
+
+  bool failThemeWrite = false;
+  bool failRead = false;
+  int themeWrites = 0;
+
+  @override
+  Future<Map<String, Object>> getAll() async {
+    if (failRead) throw StateError('preferences unreadable');
+    return super.getAll();
+  }
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) {
+    if (key.endsWith('APP_THEME_MODE')) {
+      themeWrites++;
+      if (failThemeWrite) return Future.value(false);
+    }
+    return super.setValue(valueType, key, value);
+  }
+}
 
 void main() {
   late List<http.Request> requests;
@@ -79,6 +107,22 @@ void main() {
       (await SharedPreferences.getInstance()).getString('APP_THEME_MODE'),
       'dark',
     );
+  });
+
+  testWidgets('navbar keeps theme and account controls at least 48dp', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(appBar: Navbar())),
+    );
+    await tester.pumpAndSettle();
+
+    for (final tooltip in ['Pilih tema', 'Akun dan keluar']) {
+      final size = tester.getSize(find.byTooltip(tooltip));
+      expect(size.width, greaterThanOrEqualTo(48), reason: '$tooltip width');
+      expect(size.height, greaterThanOrEqualTo(48), reason: '$tooltip height');
+    }
+    expect(tester.takeException(), isNull);
   });
 
   test(
@@ -158,6 +202,109 @@ void main() {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     await tester.pumpAndSettle();
     expect(find.text('dark'), findsOneWidget);
+  });
+  testWidgets(
+    'failed theme save keeps new mode in memory, warns, and keeps old saved choice',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({'APP_THEME_MODE': 'light'});
+      final store = _ThemeStore({'flutter.APP_THEME_MODE': 'light'})
+        ..failThemeWrite = true;
+      SharedPreferencesStorePlatform.instance = store;
+      ThemeNotifier.themeMode.value = ThemeMode.light;
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: Center(child: ThemeToggle())),
+        ),
+      );
+      await tester.tap(find.byTooltip('Pilih tema'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Gelap'));
+      await tester.pumpAndSettle();
+
+      expect(ThemeNotifier.themeMode.value, ThemeMode.dark);
+      expect(
+        find.textContaining('Tema berubah, tetapi gagal disimpan'),
+        findsOneWidget,
+      );
+      expect((await store.getAll())['flutter.APP_THEME_MODE'], 'light');
+    },
+  );
+
+  test('unreadable preference store falls back to System', () async {
+    SharedPreferences.setMockInitialValues({});
+    SharedPreferencesStorePlatform.instance = _ThemeStore({})..failRead = true;
+    ThemeNotifier.themeMode.value = ThemeMode.dark;
+
+    await ThemeNotifier.initialize();
+
+    expect(ThemeNotifier.themeMode.value, ThemeMode.system);
+  });
+
+  testWidgets('OS brightness changes do not write theme preferences', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final store = _ThemeStore({});
+    SharedPreferencesStorePlatform.instance = store;
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await ThemeNotifier.initialize();
+    expect(ThemeNotifier.themeMode.value, ThemeMode.system);
+    store.themeWrites = 0;
+
+    await tester.pumpWidget(
+      ValueListenableBuilder<ThemeMode>(
+        valueListenable: ThemeNotifier.themeMode,
+        builder: (context, mode, child) => MaterialApp(
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: mode,
+          home: Builder(
+            builder: (context) => Text(Theme.of(context).brightness.name),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('light'), findsOneWidget);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    await tester.pumpAndSettle();
+    expect(find.text('dark'), findsOneWidget);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    await tester.pumpAndSettle();
+    expect(find.text('light'), findsOneWidget);
+
+    expect(store.themeWrites, 0);
+    expect(
+      (await store.getAll()).containsKey('flutter.APP_THEME_MODE'),
+      isFalse,
+    );
+  });
+
+  testWidgets('theme chooser opens and selects with the keyboard', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    ThemeNotifier.themeMode.value = ThemeMode.system;
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: Center(child: ThemeToggle())),
+      ),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.text('Tampilan'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tampilan'), findsNothing);
+    expect(ThemeNotifier.themeMode.value, ThemeMode.light);
   });
   test('dashboard service parses raw workload array only', () async {
     Network.client = MockClient((request) async {

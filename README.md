@@ -58,12 +58,12 @@ flutter build apk --debug --no-pub
 
 The debug APK is written to `build\app\outputs\flutter-apk\app-debug.apk`. Gradle prints a restricted `System.load` warning that does not affect the build.
 
-Last verified on 2026-11-07 (Windows, Flutter debug build, Android 15 emulator against the QA backend):
+Last verified on 2026-11-08 (Windows, Flutter debug build, Android 15 emulator against the QA backend):
 
 - `flutter analyze --no-pub`: no issues.
-- `flutter test --no-pub`: 176 tests passed.
+- `flutter test --no-pub`: 187 tests passed.
 - `flutter build apk --debug --no-pub`: succeeded.
-- All ten scenarios in [MANUAL_TESTING.md](MANUAL_TESTING.md) were run on the emulator against QA with disposable data, which was then deleted.
+- All ten scenarios in [MANUAL_TESTING.md](MANUAL_TESTING.md) were run on the emulator against QA with disposable data on 2026-11-07, then the data was deleted. Later input-border and app-bar sizing changes were checked on the emulator by screenshots and by measuring the 48 dp controls; the ten scenarios were not repeated in full.
 
 Test suites cover authentication and validation, environment isolation and sessions, projects, Kanban boards, tasks, members and summaries, global analytics, themes, and compact layouts. See [AGENTS.md](AGENTS.md) for the file map.
 

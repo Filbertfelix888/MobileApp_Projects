@@ -49,9 +49,9 @@ The interface follows a minimalist productivity direction on Material 3:
 Run on 2026-11-07:
 
 - `flutter analyze --no-pub`: no issues.
-- `flutter test --no-pub`: 176 tests passed.
+- `flutter test --no-pub`: 187 tests passed.
 - `flutter build apk --debug --no-pub`: succeeded.
-- Ten manual scenarios (registration, session, projects, Kanban, tasks, moves including drag and drop, members and assignees, summary and analytics, themes and large text, cleanup) were run on an Android 15 emulator against the QA backend with disposable data.
+- Ten manual scenarios (registration, session, projects, Kanban, tasks, moves including drag and drop, members and assignees, summary and analytics, themes and large text, cleanup) were run on an Android 15 emulator against the QA backend with disposable data on 2026-11-07. Later input-border and app-bar sizing changes were checked on the emulator by screenshots and measurement, not by repeating every scenario.
 
 ## Limitations
 

@@ -50,7 +50,7 @@ class _NavbarState extends State<Navbar> {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -96,6 +96,10 @@ class _NavbarState extends State<Navbar> {
 
                   PopupMenuButton<String>(
                     tooltip: 'Akun dan keluar',
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size.square(48),
+                      padding: EdgeInsets.zero,
+                    ),
                     icon: Icon(
                       Icons.account_circle,
                       size: 28,

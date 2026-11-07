@@ -74,7 +74,7 @@ Belum. Backend belum punya fitur mengurutkan; tugas yang dipindah selalu masuk d
 Backend menghitung penugasan dari semua proyek dan mengelompokkan berdasarkan nama. Aplikasi menampilkan apa adanya dan menuliskan cakupan itu di layar.
 
 **Bagaimana kualitas aplikasi diuji?**
-Pada 2026-11-07: analisis kode tanpa temuan, 176 tes otomatis lulus, build APK debug berhasil, dan sepuluh skenario di `MANUAL_TESTING.md` dijalankan di emulator Android dengan backend QA.
+Pada 2026-11-08: analisis kode tanpa temuan, 187 tes otomatis lulus, dan build APK debug berhasil. Sepuluh skenario di `MANUAL_TESTING.md` dijalankan di emulator Android dengan backend QA pada 2026-11-07; perubahan kecil setelahnya (batas input dan ukuran tombol bilah atas) dicek lewat tangkapan layar dan pengukuran, bukan diulang penuh.
 
 **Apa yang belum ada?**
 Komentar, label, lampiran, daftar periksa, pengurutan, dan penghapusan akun. Build rilis belum ditandatangani.
