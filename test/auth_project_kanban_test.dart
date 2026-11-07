@@ -128,8 +128,8 @@ void main() {
       isNull,
     );
 
-    await tester.ensureVisible(find.text('DETAIL PROYEK'));
-    await tester.tap(find.text('DETAIL PROYEK'));
+    await tester.ensureVisible(find.text('Detail proyek'));
+    await tester.tap(find.text('Detail proyek'));
     await tester.pumpAndSettle();
 
     expect(find.text('QA Project'), findsWidgets);

@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import '../environment_config.dart';
 import '../network.dart';
 import 'email_validation.dart';
+import '../ui/Theme/theme_tonggle.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  /// The academic demo always uses QA, so the DEV/QA selector is hidden by
+  /// default. The selector and its switching logic stay compiled and testable.
+  const LoginPage({super.key, this.showEnvironmentSelector = false});
+
+  final bool showEnvironmentSelector;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -136,199 +141,223 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isWide = MediaQuery.sizeOf(context).width >= 600;
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Masuk',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (_sessionWarning != null)
-                        MaterialBanner(
-                          content: Text(_sessionWarning!),
-                          actions: [
-                            TextButton(
-                              onPressed: () =>
-                                  setState(() => _sessionWarning = null),
-                              child: const Text('OK'),
+      body: Stack(
+        alignment: Alignment.topRight,
+        children: [
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Card(
+                  color: isWide
+                      ? colorScheme.surface
+                      : Theme.of(context).scaffoldBackgroundColor,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    side: isWide
+                        ? BorderSide(color: colorScheme.outlineVariant)
+                        : BorderSide.none,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Masuk',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          if (_sessionWarning != null)
+                            MaterialBanner(
+                              content: Text(_sessionWarning!),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      setState(() => _sessionWarning = null),
+                                  child: const Text('OK'),
+                                ),
+                              ],
                             ),
+                          const SizedBox(height: 16),
+                          if (widget.showEnvironmentSelector) ...[
+                            ValueListenableBuilder<bool>(
+                              valueListenable: EnvironmentConfig.switching,
+                              builder: (context, switching, child) {
+                                return ValueListenableBuilder<
+                                  BackendEnvironment
+                                >(
+                                  valueListenable: EnvironmentConfig.selected,
+                                  builder: (context, environment, child) {
+                                    return DropdownButtonFormField<
+                                      BackendEnvironment
+                                    >(
+                                      key: ValueKey(
+                                        '${environment.name}:${EnvironmentConfig.generation}:$switching',
+                                      ),
+                                      initialValue: environment,
+                                      decoration: InputDecoration(
+                                        labelText: 'Environment',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                      ),
+                                      items: const [
+                                        DropdownMenuItem(
+                                          value: BackendEnvironment.qa,
+                                          child: Text('QA'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: BackendEnvironment.dev,
+                                          child: Text('DEV'),
+                                        ),
+                                      ],
+                                      onChanged: switching
+                                          ? null
+                                          : (value) {
+                                              if (value != null) {
+                                                _selectEnvironment(value);
+                                              }
+                                            },
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 12),
                           ],
-                        ),
-                      const SizedBox(height: 16),
-                      ValueListenableBuilder<bool>(
-                        valueListenable: EnvironmentConfig.switching,
-                        builder: (context, switching, child) {
-                          return ValueListenableBuilder<BackendEnvironment>(
-                            valueListenable: EnvironmentConfig.selected,
-                            builder: (context, environment, child) {
-                              return DropdownButtonFormField<
-                                BackendEnvironment
-                              >(
-                                key: ValueKey(
-                                  '${environment.name}:${EnvironmentConfig.generation}:$switching',
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Email harus di isi';
+                              }
+                              if (!isValidEmailAddress(value)) {
+                                return 'Format email tidak valid';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
+                              ),
+                              suffixIcon: IconButton(
+                                tooltip: _obscurePassword
+                                    ? 'Tampilkan password'
+                                    : 'Sembunyikan password',
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
                                 ),
-                                initialValue: environment,
-                                decoration: const InputDecoration(
-                                  labelText: 'Environment',
-                                  border: OutlineInputBorder(),
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
                                 ),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: BackendEnvironment.qa,
-                                    child: Text('QA'),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Password harus di isi';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: EnvironmentConfig.switching,
+                            builder: (context, switching, child) {
+                              return SizedBox(
+                                width: double.infinity,
+                                child: FilledButton(
+                                  onPressed: _isLoading || switching
+                                      ? null
+                                      : _onSubmit,
+                                  style: FilledButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(48),
                                   ),
-                                  DropdownMenuItem(
-                                    value: BackendEnvironment.dev,
-                                    child: Text('DEV'),
-                                  ),
-                                ],
-                                onChanged: switching
-                                    ? null
-                                    : (value) {
-                                        if (value != null) {
-                                          _selectEnvironment(value);
-                                        }
-                                      },
+                                  child: _isLoading
+                                      ? SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: colorScheme.onPrimary,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Masuk ke akun Anda',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                ),
                               );
                             },
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 14,
                           ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Email harus di isi';
-                          }
-                          if (!isValidEmailAddress(value)) {
-                            return 'Format email tidak valid';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          border: const OutlineInputBorder(),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 14,
-                          ),
-                          suffixIcon: IconButton(
-                            tooltip: _obscurePassword
-                                ? 'Tampilkan password'
-                                : 'Sembunyikan password',
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                            ),
-                            onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            ),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Password harus di isi';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      ValueListenableBuilder<bool>(
-                        valueListenable: EnvironmentConfig.switching,
-                        builder: (context, switching, child) {
-                          return SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _isLoading || switching
-                                  ? null
-                                  : _onSubmit,
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(48),
-                                backgroundColor: colorScheme.primary,
-                                foregroundColor: colorScheme.onPrimary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
+                          const SizedBox(height: 8),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: EnvironmentConfig.switching,
+                            builder: (context, switching, child) {
+                              return SizedBox(
+                                width: double.infinity,
+                                child: TextButton(
+                                  onPressed: _isLoading || switching
+                                      ? null
+                                      : () => Navigator.pushNamed(
+                                          context,
+                                          '/signup',
+                                        ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: colorScheme.primary,
+                                  ),
+                                  child: const Text('Daftar baru'),
                                 ),
-                              ),
-                              child: _isLoading
-                                  ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: colorScheme.onPrimary,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Masuk ke akun Anda',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          );
-                        },
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      ValueListenableBuilder<bool>(
-                        valueListenable: EnvironmentConfig.switching,
-                        builder: (context, switching, child) {
-                          return SizedBox(
-                            width: double.infinity,
-                            child: TextButton(
-                              onPressed: _isLoading || switching
-                                  ? null
-                                  : () =>
-                                        Navigator.pushNamed(context, '/signup'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: colorScheme.primary,
-                              ),
-                              child: const Text('Daftar baru'),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8, right: 8),
+              child: const ThemeToggle(),
+            ),
+          ),
+        ],
       ),
     );
   }

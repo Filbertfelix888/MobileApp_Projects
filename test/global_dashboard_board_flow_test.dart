@@ -165,8 +165,8 @@ void main() {
 
       await tester.tap(find.text('Proyek'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('DETAIL PROYEK'));
-      await tester.tap(find.text('DETAIL PROYEK'));
+      await tester.ensureVisible(find.text('Detail proyek'));
+      await tester.tap(find.text('Detail proyek'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Assign me'));
       await tester.pumpAndSettle();

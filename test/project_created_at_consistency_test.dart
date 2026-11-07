@@ -88,10 +88,12 @@ void main() {
 
     expect(find.text(localCreatedDate), findsOneWidget);
 
-    await tester.ensureVisible(find.text('DETAIL PROYEK'));
-    await tester.tap(find.text('DETAIL PROYEK'));
+    await tester.ensureVisible(find.text('Detail proyek'));
+    await tester.tap(find.text('Detail proyek'));
     await tester.pumpAndSettle();
     expect(find.byType(ProjectDetailPage), findsOneWidget);
+    await tester.tap(find.text('Detail proyek'));
+    await tester.pumpAndSettle();
 
     expect(find.text(localCreatedDate), findsOneWidget);
   });

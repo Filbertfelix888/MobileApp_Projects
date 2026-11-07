@@ -86,7 +86,7 @@ void main() {
       }
       return _list('Alpha');
     });
-    await tester.tap(find.text('BUAT PROYEK BARU'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Buat proyek baru'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
@@ -122,7 +122,7 @@ void main() {
       DateTime.parse(dueDate).toLocal().toIso8601String().substring(0, 10),
       displayedDate,
     );
-    expect(find.text('Buat proyek baru'), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
     expect(requests.where((request) => request.method == 'GET').length, 2);
   });
 
@@ -143,7 +143,7 @@ void main() {
       }
       return _list('Alpha');
     });
-    await tester.tap(find.text('BUAT PROYEK BARU'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Buat proyek baru'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).at(0), 'Proyek baru');
     await tester.enterText(
@@ -157,7 +157,13 @@ void main() {
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
     expect(find.text('Failed to create board'), findsOneWidget);
-    expect(find.text('Buat proyek baru'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('Buat proyek baru'),
+      ),
+      findsOneWidget,
+    );
     expect(
       tester
           .widget<TextFormField>(find.byType(TextFormField).at(0))
@@ -182,7 +188,7 @@ void main() {
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
     expect(attempts, 2);
-    expect(find.text('Buat proyek baru'), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
     expect(requests.where((request) => request.method == 'GET').length, 2);
   });
 
@@ -197,6 +203,46 @@ void main() {
         .first;
     expect(find.text(createdDate), findsOneWidget);
     expect(requests.single.url.toString(), '$_base/my?filter&limit=10&page=1');
+  });
+  testWidgets('mobile project list exposes detail and safe delete controls', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    Network.client = MockClient((request) async {
+      requests.add(request);
+      return _list('Alpha');
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: const HomePage(),
+        onGenerateRoute: (settings) => MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => Scaffold(body: Text(settings.name ?? 'detail')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DataTable), findsNothing);
+    expect(find.text('First'), findsOneWidget);
+    expect(
+      find.widgetWithText(OutlinedButton, 'Detail proyek'),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('Hapus proyek Alpha'), findsOneWidget);
+
+    await tester.tap(find.text('Detail proyek'));
+    await tester.pumpAndSettle();
+    expect(find.text('/projects/$_id'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Hapus proyek Alpha'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Batal'));
+    await tester.pumpAndSettle();
+    expect(requests.where((request) => request.method == 'DELETE'), isEmpty);
   });
 
   testWidgets('empty data disables pagination', (tester) async {
@@ -236,8 +282,8 @@ void main() {
     });
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byIcon(Icons.delete));
-    await tester.tap(find.byIcon(Icons.delete));
+    await tester.ensureVisible(find.byIcon(Icons.delete_outline));
+    await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Hapus'));
     await tester.pumpAndSettle();
@@ -254,8 +300,8 @@ void main() {
       }
       return _list('Alpha');
     });
-    await tester.ensureVisible(find.byIcon(Icons.delete));
-    await tester.tap(find.byIcon(Icons.delete));
+    await tester.ensureVisible(find.byIcon(Icons.delete_outline));
+    await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Hapus'));
     await tester.pumpAndSettle();
@@ -271,8 +317,8 @@ void main() {
       }
       return _list('Alpha');
     });
-    await tester.ensureVisible(find.byIcon(Icons.delete));
-    await tester.tap(find.byIcon(Icons.delete));
+    await tester.ensureVisible(find.byIcon(Icons.delete_outline));
+    await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
     expect(
       find.text(
@@ -342,8 +388,8 @@ void main() {
       await pumpWithLogin(tester, (request) async {
         return request.method == 'DELETE' ? unauthorized : _list('Alpha');
       });
-      await tester.ensureVisible(find.byIcon(Icons.delete));
-      await tester.tap(find.byIcon(Icons.delete));
+      await tester.ensureVisible(find.byIcon(Icons.delete_outline));
+      await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Hapus'));
       await tester.pumpAndSettle();

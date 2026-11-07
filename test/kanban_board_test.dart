@@ -606,6 +606,7 @@ void main() {
         '2026-12-05T00:00:00Z',
       );
 
+      await tester.ensureVisible(find.text('Hapus tenggat'));
       await tester.tap(find.text('Hapus tenggat'));
       await tester.pump();
       expect(find.text('Tidak ada tenggat'), findsOneWidget);
@@ -942,6 +943,32 @@ void main() {
     expect(find.text('Anggota'), findsOneWidget);
     expect(find.text('Tambah kolom'), findsOneWidget);
   });
+  testWidgets('task detail adapts between phone and wide layouts', (
+    tester,
+  ) async {
+    cardsByColumn[_second] = [_card(listInternalId: 2)];
+    await pumpBoard(tester, surfaceSize: const Size(360, 800));
+    await tester.tap(find.text('Task A').first);
+    await tester.pumpAndSettle();
+    final phoneRect = tester.getRect(find.byType(Dialog));
+    expect(phoneRect.width, 360);
+    expect(phoneRect.height, 800);
+
+    await tester.tap(find.byTooltip('Tutup detail tugas'));
+    await tester.pumpAndSettle();
+    await tester.binding.setSurfaceSize(const Size(1024, 768));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Task A').first);
+    await tester.pumpAndSettle();
+    final wideSurface = find.byWidgetPredicate(
+      (widget) =>
+          widget is ConstrainedBox && widget.constraints.maxWidth == 640,
+    );
+    final wideRect = tester.getRect(wideSurface);
+    expect(wideRect.width, lessThanOrEqualTo(640));
+    expect(wideRect.height, lessThanOrEqualTo(768 * .9));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('empty server titles remain visible and editable', (
     tester,
@@ -985,6 +1012,9 @@ void main() {
     await tester.tap(find.text('Task A'));
     await tester.pumpAndSettle();
     expect(find.text('Former Member'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byTooltip('Hapus Former Member sebagai penanggung jawab'),
+    );
     await tester.tap(
       find.byTooltip('Hapus Former Member sebagai penanggung jawab'),
     );

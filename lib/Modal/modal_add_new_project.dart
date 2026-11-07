@@ -102,14 +102,13 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         constraints: BoxConstraints(
           minWidth: 280,
-          maxWidth: 500,
-          maxHeight: MediaQuery.sizeOf(context).height * .85,
+          maxWidth: 440,
+          maxHeight: MediaQuery.sizeOf(context).height * .9,
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -119,8 +118,7 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
             children: [
               Text(
                 'Buat proyek baru',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
 
@@ -140,9 +138,11 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
                       // Field: Nama Proyek
                       TextFormField(
                         controller: _titleController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Nama proyek',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 12,
@@ -161,10 +161,12 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
                       TextFormField(
                         controller: _descriptionController,
                         maxLines: 4,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Deskripsi',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.all(12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.all(12),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -180,10 +182,12 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
                         controller: _dueDateController,
                         readOnly: true,
                         onTap: () => _selectDate(context),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Deadline proyek',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          suffixIcon: const Icon(Icons.calendar_today_outlined),
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 12,
@@ -204,22 +208,14 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          ElevatedButton(
+                          FilledButton(
                             onPressed: _isLoading ? null : _handleSubmit,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(48, 48),
-                              backgroundColor: colors.primary,
-                              foregroundColor: colors.onPrimary,
-                            ),
                             child: const Text('Simpan'),
                           ),
-                          OutlinedButton(
+                          TextButton(
                             onPressed: _isLoading
                                 ? null
                                 : () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(48, 48),
-                            ),
                             child: const Text('Batalkan'),
                           ),
                         ],

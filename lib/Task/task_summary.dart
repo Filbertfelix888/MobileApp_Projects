@@ -232,8 +232,11 @@ class TaskSummaryView extends StatelessWidget {
       children: [
         Text('Ringkasan tugas', style: theme.textTheme.titleLarge),
         const SizedBox(height: 8),
-        Text('Total tugas: ${summary.totalTasks}'),
-        const SizedBox(height: 16),
+        Text(
+          'Total tugas: ${summary.totalTasks}',
+          style: theme.textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 24),
         Text('Tugas per kolom', style: theme.textTheme.titleMedium),
         for (final item in summary.columns)
           Padding(
@@ -255,6 +258,8 @@ class TaskSummaryView extends StatelessWidget {
           const Text('Belum ada tugas yang ditugaskan.'),
         for (final row in summary.workloads)
           ListTile(
+            dense: true,
+            visualDensity: VisualDensity.compact,
             contentPadding: EdgeInsets.zero,
             title: Text(row.name),
             subtitle: Text(row.email),
@@ -263,6 +268,8 @@ class TaskSummaryView extends StatelessWidget {
         if (summary.unassignedCount > 0)
           ListTile(
             contentPadding: EdgeInsets.zero,
+            dense: true,
+            visualDensity: VisualDensity.compact,
             title: const Text('Belum ditugaskan'),
             trailing: Text('${summary.unassignedCount}'),
           ),

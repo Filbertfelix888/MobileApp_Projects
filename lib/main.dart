@@ -7,6 +7,7 @@ import 'Project/project_detail_page.dart';
 import 'app_navigation.dart';
 import 'environment_config.dart';
 import 'session_manager.dart';
+import 'ui/Theme/app_theme.dart';
 import 'ui/Theme/theme_notifier.dart';
 
 Future<void> main() async {
@@ -16,12 +17,17 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, this.homePage = const HomePage()});
+  const MyApp({
+    super.key,
+    this.homePage = const HomePage(),
+    this.loginPage = const LoginPage(),
+  });
 
   static final GlobalKey<NavigatorState> _navigatorKey =
       GlobalKey<NavigatorState>();
 
   final Widget homePage;
+  final Widget loginPage;
 
   @override
   Widget build(BuildContext context) {
@@ -41,29 +47,15 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           themeMode: currentMode,
 
-          // Tema Terang (Light Mode)
-          theme: ThemeData(
-            brightness: Brightness.light,
-            primarySwatch: Colors.blue,
-            scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-            cardColor: Colors.white,
-            dividerColor: const Color(0xFFE0E0E0),
-          ),
-
-          // Tema Gelap (Dark Mode)
-          darkTheme: ThemeData(
-            brightness: Brightness.dark,
-            primarySwatch: Colors.blue,
-            scaffoldBackgroundColor: const Color(0xFF121212),
-            cardColor: const Color(0xFF1E1E1E),
-            dividerColor: const Color(0xFF2C2C2C),
-          ),
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
 
           initialRoute: '/',
           routes: {
-            '/login': (context) => const LoginPage(),
+            '/login': (context) => loginPage,
             '/signup': (context) => const RegisterPage(),
-            '/': (context) => _ProtectedRoute(child: homePage),
+            '/': (context) =>
+                _ProtectedRoute(loginPage: loginPage, child: homePage),
           },
           onGenerateRoute: (settings) {
             final name = settings.name ?? '';
@@ -74,6 +66,7 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute<void>(
               settings: settings,
               builder: (_) => _ProtectedRoute(
+                loginPage: loginPage,
                 child: ProjectDetailPage(
                   boardId: name.substring(prefix.length),
                 ),
@@ -87,9 +80,10 @@ class MyApp extends StatelessWidget {
 }
 
 class _ProtectedRoute extends StatefulWidget {
-  const _ProtectedRoute({required this.child});
+  const _ProtectedRoute({required this.child, required this.loginPage});
 
   final Widget child;
+  final Widget loginPage;
 
   @override
   State<_ProtectedRoute> createState() => _ProtectedRouteState();
@@ -127,7 +121,7 @@ class _ProtectedRouteState extends State<_ProtectedRoute> {
                 token is String &&
                 token.isNotEmpty
             ? widget.child
-            : const LoginPage();
+            : widget.loginPage;
       },
     );
   }

@@ -91,7 +91,9 @@ void main() {
     expect(find.byIcon(Icons.account_circle), findsNothing);
   });
 
-  testWidgets('malformed stored session fails closed without deleting it', (tester) async {
+  testWidgets('malformed stored session fails closed without deleting it', (
+    tester,
+  ) async {
     const malformedSession = '{not-json';
     SharedPreferences.setMockInitialValues({
       'BACKEND_ENVIRONMENT': 'qa',
@@ -104,12 +106,16 @@ void main() {
 
     expect(find.text('Masuk'), findsOneWidget);
     expect(
-      await SharedPreferences.getInstance().then((prefs) => prefs.getString('SESSION_KEY')),
+      await SharedPreferences.getInstance().then(
+        (prefs) => prefs.getString('SESSION_KEY'),
+      ),
       malformedSession,
     );
   });
 
-  testWidgets('home stays hidden while session restoration is pending', (tester) async {
+  testWidgets('home stays hidden while session restoration is pending', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'BACKEND_ENVIRONMENT': 'qa',
       'SESSION_ENVIRONMENT': 'qa',
@@ -122,15 +128,23 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  testWidgets('switching environments removes authenticated routes', (tester) async {
+  testWidgets('switching environments removes authenticated routes', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'BACKEND_ENVIRONMENT': 'qa',
       'SESSION_ENVIRONMENT': 'qa',
       'SESSION_KEY': '{"access_token":"test-token"}',
     });
-    await tester.pumpWidget(MyApp(homePage: _testHome()));
+    await tester.pumpWidget(
+      MyApp(
+        homePage: _testHome(),
+        loginPage: const LoginPage(showEnvironmentSelector: true),
+      ),
+    );
     await tester.pumpAndSettle();
-    Navigator.of(tester.element(find.byIcon(Icons.account_circle))).pushNamed('/login');
+    Navigator.of(tester.element(find.byIcon(Icons.account_circle)))
+        .pushNamed('/login');
     await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<BackendEnvironment>));
     await tester.pumpAndSettle();
@@ -142,42 +156,57 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.account_circle), findsNothing);
   });
-  testWidgets('failed environment persistence keeps switched session logged out on Back', (tester) async {
-    final initialValues = {
-      'BACKEND_ENVIRONMENT': 'qa',
-      'SESSION_ENVIRONMENT': 'qa',
-      'SESSION_KEY': '{"access_token":"test-token"}',
-    };
-    SharedPreferences.setMockInitialValues(initialValues);
-    final store = _FailingEnvironmentStore({
-      for (final entry in initialValues.entries) 'flutter.${entry.key}': entry.value,
-    });
-    SharedPreferencesStorePlatform.instance = store;
 
-    await tester.pumpWidget(MyApp(homePage: _testHome()));
-    await tester.pumpAndSettle();
-    Navigator.of(tester.element(find.byIcon(Icons.account_circle))).pushNamed('/login');
-    await tester.pumpAndSettle();
-    final previousGeneration = EnvironmentConfig.generation;
-    store.failEnvironmentWrite = true;
-    await tester.tap(find.byType(DropdownButtonFormField<BackendEnvironment>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('DEV').last);
-    await tester.pumpAndSettle();
+  testWidgets(
+    'failed environment persistence keeps switched session logged out on Back',
+    (tester) async {
+      final initialValues = {
+        'BACKEND_ENVIRONMENT': 'qa',
+        'SESSION_ENVIRONMENT': 'qa',
+        'SESSION_KEY': '{"access_token":"test-token"}',
+      };
+      SharedPreferences.setMockInitialValues(initialValues);
+      final store = _FailingEnvironmentStore({
+        for (final entry in initialValues.entries)
+          'flutter.${entry.key}': entry.value,
+      });
+      SharedPreferencesStorePlatform.instance = store;
 
-    final prefs = await SharedPreferences.getInstance();
-    expect(EnvironmentConfig.selected.value, BackendEnvironment.qa);
-    expect(EnvironmentConfig.generation, greaterThan(previousGeneration));
-    expect((await store.getAll())['flutter.BACKEND_ENVIRONMENT'], 'qa');
-    expect(prefs.getString('SESSION_KEY'), isNull);
-    expect(find.text('QA'), findsOneWidget);
-    expect(find.text('DEV'), findsNothing);
-    expect(Navigator.of(tester.element(find.text('Masuk'))).canPop(), isFalse);
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.account_circle), findsNothing);
-  });
+      await tester.pumpWidget(
+        MyApp(
+          homePage: _testHome(),
+          loginPage: const LoginPage(showEnvironmentSelector: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byIcon(Icons.account_circle)))
+          .pushNamed('/login');
+      await tester.pumpAndSettle();
+      final previousGeneration = EnvironmentConfig.generation;
+      store.failEnvironmentWrite = true;
+      await tester.tap(
+        find.byType(DropdownButtonFormField<BackendEnvironment>),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('DEV').last);
+      await tester.pumpAndSettle();
 
+      final prefs = await SharedPreferences.getInstance();
+      expect(EnvironmentConfig.selected.value, BackendEnvironment.qa);
+      expect(EnvironmentConfig.generation, greaterThan(previousGeneration));
+      expect((await store.getAll())['flutter.BACKEND_ENVIRONMENT'], 'qa');
+      expect(prefs.getString('SESSION_KEY'), isNull);
+      expect(find.text('QA'), findsOneWidget);
+      expect(find.text('DEV'), findsNothing);
+      expect(
+        Navigator.of(tester.element(find.text('Masuk'))).canPop(),
+        isFalse,
+      );
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.account_circle), findsNothing);
+    },
+  );
 
   testWidgets('logout clears session and opens login route', (tester) async {
     SharedPreferences.setMockInitialValues({
@@ -191,7 +220,8 @@ void main() {
     await tester.pump();
     expect(find.byIcon(Icons.account_circle), findsOneWidget);
 
-    Navigator.of(tester.element(find.byIcon(Icons.account_circle))).pushNamed('/');
+    Navigator.of(tester.element(find.byIcon(Icons.account_circle)))
+        .pushNamed('/');
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.account_circle));
@@ -203,30 +233,39 @@ void main() {
     expect(find.byIcon(Icons.account_circle), findsNothing);
     expect(Navigator.of(tester.element(find.text('Masuk'))).canPop(), isFalse);
     expect(
-      await SharedPreferences.getInstance().then((prefs) => prefs.getString('SESSION_KEY')),
+      await SharedPreferences.getInstance().then(
+        (prefs) => prefs.getString('SESSION_KEY'),
+      ),
       isNull,
     );
   });
 
-  test('partial session write fails closed and removes any written token', () async {
-    final store = _FailingEnvironmentStore({
-      'flutter.BACKEND_ENVIRONMENT': 'qa',
-    })..failSessionEnvironmentWrite = true;
-    SharedPreferencesStorePlatform.instance = store;
+  test(
+    'partial session write fails closed and removes any written token',
+    () async {
+      final store = _FailingEnvironmentStore({
+        'flutter.BACKEND_ENVIRONMENT': 'qa',
+      })..failSessionEnvironmentWrite = true;
+      SharedPreferencesStorePlatform.instance = store;
 
-    await expectLater(
-      SessionManager.setSession(
-        {'access_token': 'partial-token'},
-        environment: 'qa',
-      ),
-      throwsStateError,
-    );
+      await expectLater(
+        SessionManager.setSession({
+          'access_token': 'partial-token',
+        }, environment: 'qa'),
+        throwsStateError,
+      );
 
-    expect(await SessionManager.getSessionForEnvironment('qa'), isNull);
-    expect((await store.getAll()).containsKey('flutter.SESSION_KEY'), isFalse);
-  });
+      expect(await SessionManager.getSessionForEnvironment('qa'), isNull);
+      expect(
+        (await store.getAll()).containsKey('flutter.SESSION_KEY'),
+        isFalse,
+      );
+    },
+  );
 
-  testWidgets('failed logout fails closed, reports error, and blocks Back', (tester) async {
+  testWidgets('failed logout fails closed, reports error, and blocks Back', (
+    tester,
+  ) async {
     final initialValues = {
       'BACKEND_ENVIRONMENT': 'qa',
       'SESSION_ENVIRONMENT': 'qa',
@@ -234,7 +273,8 @@ void main() {
     };
     SharedPreferences.setMockInitialValues(initialValues);
     final store = _FailingEnvironmentStore({
-      for (final entry in initialValues.entries) 'flutter.${entry.key}': entry.value,
+      for (final entry in initialValues.entries)
+        'flutter.${entry.key}': entry.value,
     })..failSessionRemoval = true;
     SharedPreferencesStorePlatform.instance = store;
 
@@ -252,10 +292,15 @@ void main() {
     Navigator.of(tester.element(find.text('Masuk'))).pushNamed('/');
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.account_circle), findsNothing);
-    expect((await store.getAll())['flutter.SESSION_KEY'], contains('test-token'));
+    expect(
+      (await store.getAll())['flutter.SESSION_KEY'],
+      contains('test-token'),
+    );
     expect((await store.getAll())['flutter.SESSION_ENVIRONMENT'], 'qa');
   });
-  testWidgets('failed login persistence removes old Home route', (tester) async {
+  testWidgets('failed login persistence removes old Home route', (
+    tester,
+  ) async {
     final initialValues = {
       'BACKEND_ENVIRONMENT': 'qa',
       'SESSION_ENVIRONMENT': 'qa',
@@ -263,7 +308,8 @@ void main() {
     };
     SharedPreferences.setMockInitialValues(initialValues);
     final store = _FailingEnvironmentStore({
-      for (final entry in initialValues.entries) 'flutter.${entry.key}': entry.value,
+      for (final entry in initialValues.entries)
+        'flutter.${entry.key}': entry.value,
     })..failSessionEnvironmentWrite = true;
     SharedPreferencesStorePlatform.instance = store;
     Network.client = MockClient(
@@ -273,14 +319,21 @@ void main() {
     await tester.pumpWidget(MyApp(homePage: _testHome()));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.account_circle), findsOneWidget);
-    Navigator.of(tester.element(find.byIcon(Icons.account_circle))).pushNamed('/login');
+    Navigator.of(tester.element(find.byIcon(Icons.account_circle)))
+        .pushNamed('/login');
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'user@example.com',
+    );
     await tester.enterText(find.byType(TextFormField).at(1), 'password');
     await tester.tap(find.text('Masuk ke akun Anda'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Could not persist session environment'), findsOneWidget);
+    expect(
+      find.textContaining('Could not persist session environment'),
+      findsOneWidget,
+    );
     expect(find.text('Login Berhasil!'), findsNothing);
     expect(find.byIcon(Icons.account_circle), findsNothing);
     expect(Navigator.of(tester.element(find.text('Masuk'))).canPop(), isFalse);
@@ -290,8 +343,9 @@ void main() {
     expect(await SessionManager.getSessionForEnvironment('qa'), isNull);
   });
 
-
-  testWidgets('missing and blank login tokens do not authenticate', (tester) async {
+  testWidgets('missing and blank login tokens do not authenticate', (
+    tester,
+  ) async {
     for (final body in ['{}', '{"data":{"access_token":""}}']) {
       EnvironmentConfig.resetForTesting();
       SessionManager.resetForTesting();
@@ -299,7 +353,10 @@ void main() {
       await EnvironmentConfig.initialize();
       Network.client = MockClient((_) async => http.Response(body, 200));
       await tester.pumpWidget(const MaterialApp(home: LoginPage()));
-      await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'user@example.com',
+      );
       await tester.enterText(find.byType(TextFormField).at(1), 'password');
 
       await tester.tap(find.text('Masuk ke akun Anda'));
@@ -311,4 +368,3 @@ void main() {
     }
   });
 }
-

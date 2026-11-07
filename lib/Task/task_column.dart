@@ -51,7 +51,7 @@ class TaskColumn extends StatelessWidget {
             color: isTarget
                 ? theme.colorScheme.primaryContainer.withValues(alpha: 0.55)
                 : theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isTarget
                   ? theme.colorScheme.primary
@@ -111,10 +111,15 @@ class TaskColumn extends StatelessWidget {
               margin: const EdgeInsets.only(right: 4),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: theme.colorScheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(16),
+                color: theme.colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Text('${tasks.length}'),
+              child: Text(
+                '${tasks.length}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ),
           PopupMenuButton<String>(
@@ -174,7 +179,13 @@ class TaskColumn extends StatelessWidget {
       );
     }
     if (tasks.isEmpty) {
-      return const Center(child: Text('Belum ada tugas'));
+      return const Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: Text('Belum ada tugas'),
+        ),
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
@@ -206,7 +217,7 @@ class _TaskCardTile extends StatelessWidget {
       maxSimultaneousDrags: enabled ? 1 : 0,
       feedback: Material(
         elevation: 6,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         child: SizedBox(width: 280, child: _card(context, dragging: true)),
       ),
       childWhenDragging: Opacity(opacity: 0.45, child: _card(context)),
@@ -222,7 +233,7 @@ class _TaskCardTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
         onTap: enabled && !dragging ? onTap : null,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         child: Semantics(
           button: true,
           label: 'Tugas ${task.displayTitle}',
@@ -231,22 +242,24 @@ class _TaskCardTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(task.displayTitle, style: theme.textTheme.titleSmall),
+                Text(task.displayTitle, style: theme.textTheme.titleMedium),
                 if (preview.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     preview,
-                    maxLines: 3,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
+                    style: theme.textTheme.bodyMedium,
                   ),
                 ],
                 if (dueDate != null) ...[
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       const Icon(Icons.event_outlined, size: 16),
-                      const SizedBox(width: 4),
                       Text(
                         'Tenggat: $dueDate',
                         style: theme.textTheme.labelSmall,

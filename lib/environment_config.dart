@@ -50,12 +50,14 @@ class EnvironmentConfig {
   static Future<void> _initialize() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_preferenceKey);
-    final environment = BackendEnvironment.values.firstWhere(
-      (value) => value.name == saved,
-      orElse: () => BackendEnvironment.qa,
+    // The academic demo is QA-only: ignore any stored DEV preference.
+    selected.value = BackendEnvironment.qa;
+    if (saved != BackendEnvironment.qa.name) {
+      await prefs.setString(_preferenceKey, BackendEnvironment.qa.name);
+    }
+    await SessionManager.invalidateUntaggedOrMismatchedSession(
+      BackendEnvironment.qa.name,
     );
-    selected.value = environment;
-    await SessionManager.invalidateUntaggedOrMismatchedSession(environment.name);
   }
 
   static Future<void> select(BackendEnvironment environment) async {

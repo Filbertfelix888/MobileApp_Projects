@@ -66,6 +66,8 @@ void main() {
   testWidgets('converts timestamps to local calendar dates', (tester) async {
     await tester.pumpWidget(MaterialApp(home: ProjectDetailPage(boardId: id)));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Detail proyek'));
+    await tester.pumpAndSettle();
 
     expect(find.text(created), findsOneWidget);
     expect(find.text(due), findsOneWidget);

@@ -329,218 +329,262 @@ class _BoardMembersDialogState extends State<BoardMembersDialog> {
     }
     return PopScope(
       canPop: !_pending,
-      child: Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: 560,
-            maxHeight: MediaQuery.sizeOf(context).height * .9,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final fullScreen = constraints.maxWidth < 600;
+          return Dialog(
+            insetPadding: fullScreen
+                ? EdgeInsets.zero
+                : const EdgeInsets.all(24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(fullScreen ? 0 : 16),
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: fullScreen ? double.infinity : 560,
+                maxHeight: fullScreen
+                    ? constraints.maxHeight
+                    : constraints.maxHeight * .9,
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(fullScreen ? 16 : 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'Anggota papan',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Tutup',
-                      onPressed: _pending ? null : () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                if (_savedRefreshError != null)
-                  MaterialBanner(
-                    content: Text(_savedRefreshError!),
-                    actions: [
-                      TextButton(
-                        onPressed: _pending ? null : _loadMembers,
-                        child: const Text('Coba lagi'),
-                      ),
-                    ],
-                  ),
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    Row(
                       children: [
-                        const SizedBox(height: 8),
-                        const Text('Anggota saat ini'),
-                        if (_membersLoading)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(16),
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
-                        else if (_membersError != null)
-                          Column(
-                            children: [
-                              Text(_membersError!, textAlign: TextAlign.center),
-                              TextButton(
-                                onPressed: _pending ? null : _loadMembers,
-                                child: const Text('Coba lagi'),
-                              ),
-                            ],
-                          )
-                        else if (_members.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: Text('Belum ada anggota'),
-                          )
-                        else
-                          ..._members.map(
-                            (user) => ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(user.displayName),
-                              subtitle: Text(user.displayEmail),
-                              trailing: IconButton(
-                                tooltip: 'Hapus ${user.displayName}',
-                                onPressed: _pending
-                                    ? null
-                                    : () => _removeMember(user),
-                                icon: const Icon(Icons.person_remove_outlined),
-                              ),
-                            ),
+                        Expanded(
+                          child: Text(
+                            'Anggota papan',
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
-                        const Divider(height: 28),
-                        const Text('Cari anggota'),
-                        TextField(
-                          controller: _searchController,
-                          enabled: !_pending,
-                          decoration: const InputDecoration(
-                            labelText: 'Nama atau email',
-                            prefixIcon: Icon(Icons.search),
-                          ),
-                          onChanged: _changeSearch,
                         ),
-                        const SizedBox(height: 8),
-                        if (_searchLoading)
-                          const Center(child: CircularProgressIndicator())
-                        else if (_searchError != null)
-                          Column(
-                            children: [
-                              Text(_searchError!, textAlign: TextAlign.center),
-                              TextButton(
-                                onPressed: _pending
-                                    ? null
-                                    : () => _loadSearch(),
-                                child: const Text('Coba lagi'),
-                              ),
-                            ],
-                          )
-                        else if (_results == null)
-                          const Text('Ketik untuk mencari anggota')
-                        else if (_results!.users.isEmpty)
-                          const Text('Tidak ada hasil')
-                        else
-                          ..._results!.users.map((user) {
-                            final isMember = _memberIds.contains(user.publicId);
-                            return CheckboxListTile(
-                              value: isMember
-                                  ? false
-                                  : _selectedIds.contains(user.publicId),
-                              onChanged: _pending || isMember
-                                  ? null
-                                  : (checked) => setState(() {
-                                      if (checked == true) {
-                                        _selectedIds.add(user.publicId);
-                                      } else {
-                                        _selectedIds.remove(user.publicId);
-                                      }
-                                    }),
-                              title: Text(user.displayName),
-                              subtitle: Text(user.displayEmail),
-                              secondary: isMember
-                                  ? const Icon(Icons.check_circle_outline)
-                                  : null,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              contentPadding: EdgeInsets.zero,
-                            );
-                          }),
-                        if (_results != null)
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 8,
-                            children: [
-                              IconButton(
-                                tooltip: 'Halaman sebelumnya',
-                                onPressed:
-                                    _pending || _searchLoading || _page <= 1
-                                    ? null
-                                    : () {
-                                        setState(() => _page--);
-                                        _loadSearch();
-                                      },
-                                icon: const Icon(Icons.chevron_left),
-                              ),
-                              Text(
-                                'Halaman $_page dari ${_results!.totalPages}',
-                              ),
-                              IconButton(
-                                tooltip: 'Halaman berikutnya',
-                                onPressed:
-                                    _pending ||
-                                        _searchLoading ||
-                                        _page >= _results!.totalPages
-                                    ? null
-                                    : () {
-                                        setState(() => _page++);
-                                        _loadSearch();
-                                      },
-                                icon: const Icon(Icons.chevron_right),
-                              ),
-                            ],
-                          ),
+                        IconButton(
+                          tooltip: 'Tutup',
+                          onPressed: _pending
+                              ? null
+                              : () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  runSpacing: 8,
-                  spacing: 8,
-                  children: [
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(48, 48),
+                    if (_savedRefreshError != null)
+                      MaterialBanner(
+                        content: Text(_savedRefreshError!),
+                        actions: [
+                          TextButton(
+                            onPressed: _pending ? null : _loadMembers,
+                            child: const Text('Coba lagi'),
+                          ),
+                        ],
                       ),
-                      onPressed: _pending ? null : () => Navigator.pop(context),
-                      child: const Text('Batal'),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 8),
+                            const Text('Anggota saat ini'),
+                            if (_membersLoading)
+                              Semantics(
+                                label: 'Memuat anggota',
+                                liveRegion: true,
+                                child: Column(
+                                  children: List.generate(
+                                    3,
+                                    (_) => Container(
+                                      height: 48,
+                                      margin: const EdgeInsets.symmetric(
+                                        vertical: 5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerLow,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else if (_membersError != null)
+                              Column(
+                                children: [
+                                  Text(
+                                    _membersError!,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  TextButton(
+                                    onPressed: _pending ? null : _loadMembers,
+                                    child: const Text('Coba lagi'),
+                                  ),
+                                ],
+                              )
+                            else if (_members.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: Text('Belum ada anggota'),
+                              )
+                            else
+                              ..._members.map(
+                                (user) => ListTile(
+                                  dense: true,
+                                  visualDensity: VisualDensity.compact,
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(user.displayName),
+                                  subtitle: Text(user.displayEmail),
+                                  trailing: IconButton(
+                                    tooltip: 'Hapus ${user.displayName}',
+                                    onPressed: _pending
+                                        ? null
+                                        : () => _removeMember(user),
+                                    icon: const Icon(
+                                      Icons.person_remove_outlined,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            const Divider(height: 28),
+                            const Text('Cari anggota'),
+                            TextField(
+                              controller: _searchController,
+                              enabled: !_pending,
+                              decoration: const InputDecoration(
+                                labelText: 'Nama atau email',
+                                prefixIcon: Icon(Icons.search),
+                              ),
+                              onChanged: _changeSearch,
+                            ),
+                            const SizedBox(height: 8),
+                            if (_searchLoading)
+                              const Center(child: CircularProgressIndicator())
+                            else if (_searchError != null)
+                              Column(
+                                children: [
+                                  Text(
+                                    _searchError!,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  TextButton(
+                                    onPressed: _pending
+                                        ? null
+                                        : () => _loadSearch(),
+                                    child: const Text('Coba lagi'),
+                                  ),
+                                ],
+                              )
+                            else if (_results == null)
+                              const Text('Ketik untuk mencari anggota')
+                            else if (_results!.users.isEmpty)
+                              const Text('Tidak ada hasil')
+                            else
+                              ..._results!.users.map((user) {
+                                final isMember = _memberIds.contains(
+                                  user.publicId,
+                                );
+                                return CheckboxListTile(
+                                  value: isMember
+                                      ? false
+                                      : _selectedIds.contains(user.publicId),
+                                  onChanged: _pending || isMember
+                                      ? null
+                                      : (checked) => setState(() {
+                                          if (checked == true) {
+                                            _selectedIds.add(user.publicId);
+                                          } else {
+                                            _selectedIds.remove(user.publicId);
+                                          }
+                                        }),
+                                  title: Text(user.displayName),
+                                  subtitle: Text(user.displayEmail),
+                                  secondary: isMember
+                                      ? const Icon(Icons.check_circle_outline)
+                                      : null,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  contentPadding: EdgeInsets.zero,
+                                );
+                              }),
+                            if (_results != null)
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Halaman sebelumnya',
+                                    onPressed:
+                                        _pending || _searchLoading || _page <= 1
+                                        ? null
+                                        : () {
+                                            setState(() => _page--);
+                                            _loadSearch();
+                                          },
+                                    icon: const Icon(Icons.chevron_left),
+                                  ),
+                                  Text(
+                                    'Halaman $_page dari ${_results!.totalPages}',
+                                  ),
+                                  IconButton(
+                                    tooltip: 'Halaman berikutnya',
+                                    onPressed:
+                                        _pending ||
+                                            _searchLoading ||
+                                            _page >= _results!.totalPages
+                                        ? null
+                                        : () {
+                                            setState(() => _page++);
+                                            _loadSearch();
+                                          },
+                                    icon: const Icon(Icons.chevron_right),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                      ),
-                      onPressed: _pending || !_isCurrent || _selectedIds.isEmpty
-                          ? null
-                          : _addSelected,
-                      child: _pending
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text('Tambah (${_selectedIds.length})'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      runSpacing: 8,
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                          ),
+                          onPressed: _pending
+                              ? null
+                              : () => Navigator.pop(context),
+                          child: const Text('Batal'),
+                        ),
+                        FilledButton(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                          ),
+                          onPressed:
+                              _pending || !_isCurrent || _selectedIds.isEmpty
+                              ? null
+                              : _addSelected,
+                          child: _pending
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text('Tambah (${_selectedIds.length})'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

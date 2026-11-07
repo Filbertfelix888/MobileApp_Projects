@@ -582,292 +582,324 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> {
     final task = _task;
     final readOnly =
         _pending || _scopeChanged || _savedRefreshFailed || !_current;
-    return PopScope(
-      canPop: !_pending,
-      child: Dialog.fullscreen(
-        child: SafeArea(
-          child: Column(
-            children: [
-              AppBar(
-                title: Text(task?.title ?? 'Detail tugas'),
-                leading: IconButton(
-                  tooltip: 'Tutup detail tugas',
-                  onPressed: _pending
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                ),
-              ),
-              Expanded(
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _error != null && task == null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(_error!, textAlign: TextAlign.center),
-                              const SizedBox(height: 12),
-                              FilledButton.icon(
-                                onPressed: _loadTask,
-                                icon: const Icon(Icons.refresh),
-                                label: const Text('Coba lagi'),
-                              ),
-                            ],
+    final screenSize = MediaQuery.sizeOf(context);
+    final isCompact = screenSize.width < 600;
+    final dialogContent = SafeArea(
+      child: Column(
+        children: [
+          AppBar(
+            title: const Text('Detail tugas'),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              tooltip: 'Tutup detail tugas',
+              onPressed: _pending ? null : () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null && task == null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_error!, textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            onPressed: _loadTask,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Coba lagi'),
                           ),
-                        ),
-                      )
-                    : task == null
-                    ? const SizedBox.shrink()
-                    : Form(
-                        key: _formKey,
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                          children: [
-                            if (_scopeChanged) ...[
-                              const Text(
-                                'Tugas berpindah kolom. Tutup detail dan muat ulang papan sebelum mengubah tugas.',
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-                            if (_savedRefreshFailed)
-                              Card(
-                                child: ListTile(
-                                  title: const Text(
-                                    'Tersimpan, gagal memuat ulang',
-                                  ),
-                                  trailing: IconButton(
-                                    tooltip: 'Muat ulang detail',
-                                    onPressed: _pending
-                                        ? null
-                                        : _reloadAfterSave,
-                                    icon: const Icon(Icons.refresh),
-                                  ),
-                                ),
-                              ),
-                            if (_error != null)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Text(
-                                  _error!,
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
-                                  ),
-                                ),
-                              ),
-                            TextFormField(
-                              controller: _title,
-                              enabled: !readOnly,
-                              maxLength: 255,
-                              validator: _validateTitle,
-                              decoration: const InputDecoration(
-                                labelText: 'Judul tugas',
-                                border: OutlineInputBorder(),
-                              ),
+                        ],
+                      ),
+                    ),
+                  )
+                : task == null
+                ? const SizedBox.shrink()
+                : Form(
+                    key: _formKey,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (_scopeChanged) ...[
+                            const Text(
+                              'Tugas berpindah kolom. Tutup detail dan muat ulang papan sebelum mengubah tugas.',
                             ),
                             const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _description,
-                              enabled: !readOnly,
-                              minLines: 3,
-                              maxLines: 8,
-                              decoration: const InputDecoration(
-                                labelText: 'Deskripsi',
-                                border: OutlineInputBorder(),
+                          ],
+                          if (_savedRefreshFailed)
+                            Card(
+                              child: ListTile(
+                                title: const Text(
+                                  'Tersimpan, gagal memuat ulang',
+                                ),
+                                trailing: IconButton(
+                                  tooltip: 'Muat ulang detail',
+                                  onPressed: _pending ? null : _reloadAfterSave,
+                                  icon: const Icon(Icons.refresh),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Tenggat',
-                                border: OutlineInputBorder(),
+                          if (_error != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                _error!,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                               ),
-                              child: Wrap(
-                                spacing: 8,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Text(_dateText),
-                                  TextButton.icon(
+                            ),
+                          TextFormField(
+                            controller: _title,
+                            enabled: !readOnly,
+                            maxLength: 255,
+                            validator: _validateTitle,
+                            decoration: const InputDecoration(
+                              labelText: 'Judul tugas',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _description,
+                            enabled: !readOnly,
+                            minLines: 3,
+                            maxLines: 8,
+                            decoration: const InputDecoration(
+                              labelText: 'Deskripsi',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Tenggat',
+                            ),
+                            child: Wrap(
+                              spacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(_dateText),
+                                TextButton.icon(
+                                  onPressed: readOnly ? null : _chooseDeadline,
+                                  icon: const Icon(Icons.calendar_today),
+                                  label: const Text('Pilih tanggal'),
+                                ),
+                                if (_deadline != null || _originalDate != null)
+                                  TextButton(
                                     onPressed: readOnly
                                         ? null
-                                        : _chooseDeadline,
-                                    icon: const Icon(Icons.calendar_today),
-                                    label: const Text('Pilih tanggal'),
+                                        : () => setState(() {
+                                            _deadline = null;
+                                            _clearDeadline = true;
+                                          }),
+                                    child: const Text('Hapus tenggat'),
                                   ),
-                                  if (_deadline != null ||
-                                      _originalDate != null)
-                                    TextButton(
-                                      onPressed: readOnly
-                                          ? null
-                                          : () => setState(() {
-                                              _deadline = null;
-                                              _clearDeadline = true;
-                                            }),
-                                      child: const Text('Hapus tenggat'),
-                                    ),
-                                ],
+                              ],
+                            ),
+                          ),
+                          if ((_projectDeadline?.isBefore(_today) ?? false))
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Text(
+                                'Tanggal proyek sudah lewat; tenggat baru tidak tersedia. Tenggat tersimpan tetap dapat dipertahankan atau dihapus.',
                               ),
                             ),
-                            if ((_projectDeadline?.isBefore(_today) ?? false))
-                              const Padding(
-                                padding: EdgeInsets.only(top: 8),
-                                child: Text(
-                                  'Tanggal proyek sudah lewat; tenggat baru tidak tersedia. Tenggat tersimpan tetap dapat dipertahankan atau dihapus.',
-                                ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Penanggung jawab',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          if (task.assignees.isEmpty)
+                            const Text('Belum ada penanggung jawab.'),
+                          for (final assignee in task.assignees)
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(assignee.user.displayName),
+                              subtitle: Text(assignee.user.displayEmail),
+                              trailing: IconButton(
+                                tooltip:
+                                    'Hapus ${assignee.user.displayName} sebagai penanggung jawab',
+                                onPressed: readOnly
+                                    ? null
+                                    : () => _removeAssignee(assignee.user),
+                                icon: const Icon(Icons.person_remove),
                               ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'Penanggung jawab',
-                              style: Theme.of(context).textTheme.titleMedium,
                             ),
-                            const SizedBox(height: 8),
-                            if (task.assignees.isEmpty)
-                              const Text('Belum ada penanggung jawab.'),
-                            for (final assignee in task.assignees)
-                              ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                title: Text(assignee.user.displayName),
-                                subtitle: Text(assignee.user.displayEmail),
-                                trailing: IconButton(
-                                  tooltip:
-                                      'Hapus ${assignee.user.displayName} sebagai penanggung jawab',
-                                  onPressed: readOnly
-                                      ? null
-                                      : () => _removeAssignee(assignee.user),
-                                  icon: const Icon(Icons.person_remove),
-                                ),
-                              ),
-                            if (_members == null)
-                              OutlinedButton.icon(
-                                onPressed: _pending ? null : _loadMembers,
-                                icon: const Icon(Icons.refresh),
-                                label: Text(
-                                  _memberError == null
-                                      ? 'Muat anggota papan'
-                                      : 'Coba lagi memuat anggota',
-                                ),
-                              )
-                            else ...[
-                              if (_memberError != null)
-                                Text(
-                                  _memberError!,
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
-                                  ),
-                                ),
-                              if (_members!.isEmpty)
-                                const Text(
-                                  'Tidak ada anggota papan yang dapat ditugaskan.',
-                                ),
-                              for (final member in _members!.where(
-                                (member) => !task.assignees.any(
-                                  (assignee) =>
-                                      assignee.user.publicId == member.publicId,
-                                ),
-                              ))
-                                CheckboxListTile(
-                                  value: _selectedAssigneeIds.contains(
-                                    member.publicId,
-                                  ),
-                                  onChanged: readOnly
-                                      ? null
-                                      : (selected) => setState(() {
-                                          if (selected == true) {
-                                            _selectedAssigneeIds.add(
-                                              member.publicId,
-                                            );
-                                          } else {
-                                            _selectedAssigneeIds.remove(
-                                              member.publicId,
-                                            );
-                                          }
-                                        }),
-                                  title: Text(member.displayName),
-                                  subtitle: Text(member.displayEmail),
-                                  controlAffinity:
-                                      ListTileControlAffinity.leading,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              FilledButton.icon(
-                                onPressed:
-                                    readOnly || _selectedAssigneeIds.isEmpty
-                                    ? null
-                                    : _addSelectedAssignees,
-                                icon: const Icon(Icons.person_add_alt_1),
-                                label: Text(
-                                  'Tugaskan (${_selectedAssigneeIds.length})',
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 16),
-                            if (_dirty)
-                              FilledButton.icon(
-                                onPressed: readOnly ? null : _save,
-                                icon: const Icon(Icons.save),
-                                label: const Text('Simpan perubahan'),
-                              ),
-                            const SizedBox(height: 8),
-                            if (widget.columns
-                                .where(
-                                  (column) =>
-                                      column.publicId != widget.column.publicId,
-                                )
-                                .isNotEmpty)
-                              DropdownButtonFormField<String>(
-                                key: ValueKey(
-                                  '${task.publicId}:${widget.column.publicId}',
-                                ),
-                                decoration: const InputDecoration(
-                                  labelText: 'Pindahkan tugas',
-                                  helperText: 'Tugas akan ditambahkan di akhir kolom tujuan.',
-                                ),
-                                items: widget.columns
-                                    .where(
-                                      (column) =>
-                                          column.publicId !=
-                                          widget.column.publicId,
-                                    )
-                                    .map(
-                                      (column) => DropdownMenuItem(
-                                        value: column.publicId,
-                                        child: Text(column.title),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: readOnly || _dirty
-                                    ? null
-                                    : (id) {
-                                        if (id == null) return;
-                                        final destination = _columnForId(id);
-                                        if (destination != null) {
-                                          _move(destination);
-                                        }
-                                      },
-                              ),
-                            if (_dirty)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 8),
-                                child: Text(
-                                  'Simpan atau batalkan perubahan sebelum memindahkan tugas.',
-                                ),
-                              ),
-                            const SizedBox(height: 12),
+                          if (_members == null)
                             OutlinedButton.icon(
-                              onPressed: readOnly ? null : _delete,
-                              icon: const Icon(Icons.delete_outline),
-                              label: const Text('Hapus tugas'),
+                              onPressed: _pending ? null : _loadMembers,
+                              icon: const Icon(Icons.refresh),
+                              label: Text(
+                                _memberError == null
+                                    ? 'Muat anggota papan'
+                                    : 'Coba lagi memuat anggota',
+                              ),
+                            )
+                          else ...[
+                            if (_memberError != null)
+                              Text(
+                                _memberError!,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            if (_members!.isEmpty)
+                              const Text(
+                                'Tidak ada anggota papan yang dapat ditugaskan.',
+                              ),
+                            for (final member in _members!.where(
+                              (member) => !task.assignees.any(
+                                (assignee) =>
+                                    assignee.user.publicId == member.publicId,
+                              ),
+                            ))
+                              CheckboxListTile(
+                                value: _selectedAssigneeIds.contains(
+                                  member.publicId,
+                                ),
+                                onChanged: readOnly
+                                    ? null
+                                    : (selected) => setState(() {
+                                        if (selected == true) {
+                                          _selectedAssigneeIds.add(
+                                            member.publicId,
+                                          );
+                                        } else {
+                                          _selectedAssigneeIds.remove(
+                                            member.publicId,
+                                          );
+                                        }
+                                      }),
+                                title: Text(member.displayName),
+                                subtitle: Text(member.displayEmail),
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            FilledButton.icon(
+                              onPressed:
+                                  readOnly || _selectedAssigneeIds.isEmpty
+                                  ? null
+                                  : _addSelectedAssignees,
+                              icon: const Icon(Icons.person_add_alt_1),
+                              label: Text(
+                                'Tugaskan (${_selectedAssigneeIds.length})',
+                              ),
                             ),
                           ],
+                        ],
+                      ),
+                    ),
+                  ),
+          ),
+          if (task != null)
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: screenSize.height * .4),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_dirty)
+                      FilledButton.icon(
+                        onPressed: readOnly ? null : _save,
+                        icon: const Icon(Icons.save),
+                        label: const Text('Simpan perubahan'),
+                      ),
+                    if (_dirty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Simpan atau batalkan perubahan sebelum memindahkan tugas.',
                         ),
                       ),
+                    if (widget.columns
+                        .where(
+                          (column) => column.publicId != widget.column.publicId,
+                        )
+                        .isNotEmpty)
+                      DropdownButtonFormField<String>(
+                        key: ValueKey(
+                          '${task.publicId}:${widget.column.publicId}',
+                        ),
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Pindahkan tugas',
+                          helperText:
+                              'Tugas akan ditambahkan di akhir kolom tujuan.',
+                        ),
+                        items: widget.columns
+                            .where(
+                              (column) =>
+                                  column.publicId != widget.column.publicId,
+                            )
+                            .map(
+                              (column) => DropdownMenuItem(
+                                value: column.publicId,
+                                child: Text(column.title),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: readOnly || _dirty
+                            ? null
+                            : (id) {
+                                if (id == null) return;
+                                final destination = _columnForId(id);
+                                if (destination != null) {
+                                  _move(destination);
+                                }
+                              },
+                      ),
+                    const Divider(height: 24),
+                    Text(
+                      'Bahaya',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: readOnly ? null : _delete,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Hapus tugas'),
+                    ),
+                  ],
+                ),
               ),
-              if (_pending) const LinearProgressIndicator(),
-            ],
-          ),
-        ),
+            ),
+          if (_pending) const LinearProgressIndicator(),
+        ],
       ),
+    );
+    return PopScope(
+      canPop: !_pending,
+      child: isCompact
+          ? Dialog.fullscreen(child: dialogContent)
+          : Dialog(
+              insetPadding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 640,
+                  maxHeight: screenSize.height * .9,
+                ),
+                child: dialogContent,
+              ),
+            ),
     );
   }
 }

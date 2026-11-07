@@ -239,261 +239,364 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Widget _pageHeading(
-    BuildContext context, {
-    required String breadcrumb,
-    required String title,
-  }) {
+  Widget _pageHeading(BuildContext context, {required String title}) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          breadcrumb,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 4),
         Text(title, style: theme.textTheme.headlineSmall),
         const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('Proyek'),
-              selected: _selectedTab == 0,
-              onSelected: (selected) {
-                if (selected) _selectTab(0);
-              },
-            ),
-            ChoiceChip(
-              label: const Text('Analitik global'),
-              selected: _selectedTab == 1,
-              onSelected: (selected) {
-                if (selected) _selectTab(1);
-              },
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 360) {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Semantics(
+                    selected: _selectedTab == 0,
+                    child: _selectedTab == 0
+                        ? FilledButton.tonal(
+                            onPressed: () => _selectTab(0),
+                            child: const Text('Proyek'),
+                          )
+                        : OutlinedButton(
+                            onPressed: () => _selectTab(0),
+                            child: const Text('Proyek'),
+                          ),
+                  ),
+                  Semantics(
+                    selected: _selectedTab == 1,
+                    child: _selectedTab == 1
+                        ? FilledButton.tonal(
+                            onPressed: () => _selectTab(1),
+                            child: const Text('Analitik global'),
+                          )
+                        : OutlinedButton(
+                            onPressed: () => _selectTab(1),
+                            child: const Text('Analitik global'),
+                          ),
+                  ),
+                ],
+              );
+            }
+            return SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('Proyek')),
+                ButtonSegment(value: 1, label: Text('Analitik global')),
+              ],
+              selected: {_selectedTab},
+              onSelectionChanged: (selection) => _selectTab(selection.first),
+            );
+          },
         ),
       ],
+    );
+  }
+
+  String _projectCreatedDate(dynamic data) {
+    final value = data['created_at']?.toString() ?? '';
+    return value.isEmpty
+        ? '-'
+        : DateTime.tryParse(value)
+                  ?.toLocal()
+                  .toIso8601String()
+                  .split('T')
+                  .first ??
+              value.split('T').first;
+  }
+
+  Widget _mobileProjectRow(BuildContext context, dynamic data) {
+    final publicId = data['public_id']?.toString() ?? '';
+    final title = data['title']?.toString() ?? '-';
+    final description = data['description']?.toString() ?? '-';
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Dibuat ${_projectCreatedDate(data)}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () =>
+                    Navigator.pushNamed(context, '/projects/$publicId'),
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Detail proyek'),
+              ),
+              IconButton(
+                tooltip: 'Hapus proyek $title',
+                onPressed: () => _handleDeleteBoard(publicId),
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _projectsBody(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth > 40
-            ? constraints.maxWidth - 40
+        final pagePadding = constraints.maxWidth < 600 ? 16.0 : 24.0;
+        final availableWidth = constraints.maxWidth > pagePadding * 2
+            ? constraints.maxWidth - pagePadding * 2
             : constraints.maxWidth;
         final searchWidth = availableWidth < 480 ? availableWidth : 240.0;
         final theme = Theme.of(context);
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _pageHeading(
-                context,
-                breadcrumb: 'Home / Daftar Proyek',
-                title: 'Daftar Proyek',
-              ),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
+          padding: EdgeInsets.all(pagePadding),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1120),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: searchWidth,
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      decoration: const InputDecoration(
-                        labelText: 'Cari proyek',
-                        hintText: 'Nama proyek',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  FilledButton.icon(
-                    onPressed: _handleOpenAddNewProject,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                    ),
-                    icon: const Icon(Icons.add),
-                    label: const Text('BUAT PROYEK BARU'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: theme.dividerColor),
-                  borderRadius: BorderRadius.circular(4),
-                  color: theme.cardColor,
-                ),
-                child: _isLoading
-                    ? const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    : _boardsError != null
-                    ? Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Gagal memuat proyek',
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _boardsError!,
-                              style: TextStyle(color: theme.colorScheme.error),
-                            ),
-                            const SizedBox(height: 8),
-                            OutlinedButton.icon(
-                              onPressed: _fetchBoardsData,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Coba lagi'),
-                            ),
-                          ],
-                        ),
-                      )
-                    : _boardsData.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          'Data tidak tersedia',
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurfaceVariant,
+                  _pageHeading(context, title: 'Daftar Proyek'),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: searchWidth,
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: _onSearchChanged,
+                          decoration: const InputDecoration(
+                            labelText: 'Cari proyek',
+                            hintText: 'Nama proyek',
+                            border: OutlineInputBorder(),
                           ),
                         ),
-                      )
-                    : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columns: [
-                            DataColumn(
-                              label: Text(
-                                'Nama proyek',
-                                style: theme.textTheme.titleSmall,
+                      ),
+                      FilledButton.icon(
+                        onPressed: _handleOpenAddNewProject,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(48, 48),
+                        ),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Buat proyek baru'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      color: theme.colorScheme.surface,
+                    ),
+                    child: _isLoading
+                        ? Semantics(
+                            label: 'Memuat',
+                            liveRegion: true,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: List.generate(
+                                  3,
+                                  (_) => Container(
+                                    height: 52,
+                                    margin: const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          theme.colorScheme.surfaceContainerLow,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                            DataColumn(
-                              label: Text(
-                                'Deskripsi',
-                                style: theme.textTheme.titleSmall,
+                          )
+                        : _boardsError != null
+                        ? Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Gagal memuat proyek',
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _boardsError!,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                OutlinedButton.icon(
+                                  onPressed: _fetchBoardsData,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Coba lagi'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _boardsData.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              'Data tidak tersedia',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            DataColumn(
-                              label: Text(
-                                'Tanggal dibuat',
-                                style: theme.textTheme.titleSmall,
-                              ),
+                          )
+                        : constraints.maxWidth < 600
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _boardsData.length,
+                              itemBuilder: (context, index) =>
+                                  _mobileProjectRow(
+                                    context,
+                                    _boardsData[index],
+                                  ),
+                              separatorBuilder: (context, index) =>
+                                  Divider(height: 1, color: theme.dividerColor),
                             ),
-                            DataColumn(
-                              label: Text(
-                                'Aksi',
-                                style: theme.textTheme.titleSmall,
-                              ),
-                            ),
-                          ],
-                          rows: _boardsData.map((data) {
-                            final publicId =
-                                data['public_id']?.toString() ?? '';
-                            final title = data['title']?.toString() ?? '-';
-                            final description =
-                                data['description']?.toString() ?? '-';
-                            final createdText =
-                                data['created_at']?.toString() ?? '';
-                            final createdAt = createdText.isEmpty
-                                ? '-'
-                                : DateTime.tryParse(createdText)
-                                          ?.toLocal()
-                                          .toIso8601String()
-                                          .split('T')
-                                          .first ??
-                                      createdText.split('T').first;
-
-                            return DataRow(
-                              cells: [
-                                DataCell(Text(title)),
-                                DataCell(Text(description)),
-                                DataCell(Text(createdAt)),
-                                DataCell(
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      OutlinedButton(
-                                        onPressed: () => Navigator.pushNamed(
-                                          context,
-                                          '/projects/$publicId',
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          side: BorderSide(
-                                            color: theme.colorScheme.primary,
-                                          ),
-                                        ),
-                                        child: const Text('DETAIL PROYEK'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        tooltip: 'Hapus proyek $title',
-                                        onPressed: () =>
-                                            _handleDeleteBoard(publicId),
-                                        icon: Icon(
-                                          Icons.delete,
-                                          size: 20,
-                                          color: theme.colorScheme.error,
-                                        ),
-                                      ),
-                                    ],
+                          )
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              columns: [
+                                DataColumn(
+                                  label: Text(
+                                    'Nama proyek',
+                                    style: theme.textTheme.titleSmall,
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Deskripsi',
+                                    style: theme.textTheme.titleSmall,
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Tanggal dibuat',
+                                    style: theme.textTheme.titleSmall,
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Aksi',
+                                    style: theme.textTheme.titleSmall,
                                   ),
                                 ),
                               ],
-                            );
-                          }).toList(),
-                        ),
+                              rows: _boardsData.map((data) {
+                                final publicId =
+                                    data['public_id']?.toString() ?? '';
+                                final title = data['title']?.toString() ?? '-';
+                                final description =
+                                    data['description']?.toString() ?? '-';
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(title)),
+                                    DataCell(Text(description)),
+                                    DataCell(Text(_projectCreatedDate(data))),
+                                    DataCell(
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          OutlinedButton(
+                                            onPressed: () =>
+                                                Navigator.pushNamed(
+                                                  context,
+                                                  '/projects/$publicId',
+                                                ),
+                                            child: const Text('Detail proyek'),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            tooltip: 'Hapus proyek $title',
+                                            onPressed: () =>
+                                                _handleDeleteBoard(publicId),
+                                            icon: Icon(
+                                              Icons.delete_outline,
+                                              size: 20,
+                                              color: theme.colorScheme.error,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      IconButton(
+                        tooltip: 'Halaman sebelumnya',
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: _currentPage > 1
+                            ? () {
+                                setState(() => _currentPage--);
+                                _fetchBoardsData();
+                              }
+                            : null,
                       ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                alignment: WrapAlignment.end,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  IconButton(
-                    tooltip: 'Halaman sebelumnya',
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: _currentPage > 1
-                        ? () {
-                            setState(() => _currentPage--);
-                            _fetchBoardsData();
-                          }
-                        : null,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('Halaman $_currentPage dari $_totalPages'),
-                  ),
-                  IconButton(
-                    tooltip: 'Halaman berikutnya',
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: _currentPage < _totalPages
-                        ? () {
-                            setState(() => _currentPage++);
-                            _fetchBoardsData();
-                          }
-                        : null,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('Halaman $_currentPage dari $_totalPages'),
+                      ),
+                      IconButton(
+                        tooltip: 'Halaman berikutnya',
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: _currentPage < _totalPages
+                            ? () {
+                                setState(() => _currentPage++);
+                                _fetchBoardsData();
+                              }
+                            : null,
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -501,25 +604,31 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _globalWorkloadBody(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _pageHeading(
-            context,
-            breadcrumb: 'Home / Analitik global',
-            title: 'Analitik global',
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final pagePadding = constraints.maxWidth < 600 ? 16.0 : 24.0;
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(pagePadding),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1120),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _pageHeading(context, title: 'Analitik global'),
+                  const SizedBox(height: 12),
+                  GlobalWorkloadView(
+                    workload: _workload,
+                    loading: _workloadLoading,
+                    error: _workloadError,
+                    onRetry: _loadGlobalWorkload,
+                  ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          GlobalWorkloadView(
-            workload: _workload,
-            loading: _workloadLoading,
-            error: _workloadError,
-            onRetry: _loadGlobalWorkload,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

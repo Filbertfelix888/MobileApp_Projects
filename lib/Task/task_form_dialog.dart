@@ -158,7 +158,10 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
       child: Dialog(
         insetPadding: const EdgeInsets.all(16),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 600),
+          constraints: BoxConstraints(
+            maxWidth: 480,
+            maxHeight: MediaQuery.sizeOf(context).height * .9,
+          ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Form(

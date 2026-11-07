@@ -136,12 +136,12 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
             Text(_error ?? 'Gagal memuat proyek'),
             const SizedBox(height: 12),
             if (EnvironmentConfig.generation == _viewGeneration)
-              ElevatedButton(
+              FilledButton(
                 onPressed: _fetchBoard,
                 child: const Text('Coba lagi'),
               )
             else
-              ElevatedButton(
+              FilledButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Kembali'),
               ),
@@ -149,45 +149,76 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
         ),
       );
     }
+
     final description = board['description']?.toString() ?? '';
+    final title = board['title']?.toString() ?? '-';
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final maxHeaderHeight = screenHeight * .3;
     return Column(
       children: [
-        Flexible(
-          flex: 1,
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: maxHeaderHeight < 240 ? maxHeaderHeight : 240,
+          ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Kembali'),
-                  ),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Kembali'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  board['title']?.toString() ?? '-',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                if (description.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                      right: 8,
+                      bottom: 4,
+                    ),
+                    child: Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
+                ExpansionTile(
+                  title: const Text('Detail proyek'),
+                  children: [
+                    _field(
+                      'Deskripsi',
+                      description.isEmpty ? '-' : description,
+                    ),
+                    _field('Tanggal dibuat', _date(board['created_at'])),
+                    _field('Tenggat', _date(board['due_date'])),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                _field('Deskripsi', description.isEmpty ? '-' : description),
-                _field('Tanggal dibuat', _date(board['created_at'])),
-                _field('Tenggat', _date(board['due_date'])),
               ],
             ),
           ),
         ),
         Expanded(
-          flex: 3,
           child: KanbanBoard(
             key: ValueKey(widget.boardId),
             boardId: widget.boardId,
-            boardTitle: board['title']?.toString() ?? '-',
+            boardTitle: title,
             boardDueDate: board['due_date']?.toString(),
             expectedGeneration: _viewGeneration,
           ),

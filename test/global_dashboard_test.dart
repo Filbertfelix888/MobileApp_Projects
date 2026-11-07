@@ -15,6 +15,7 @@ import 'package:my_mobile_app/System Login/login_page.dart';
 import 'package:my_mobile_app/System Login/register_page.dart';
 import 'package:my_mobile_app/ui/Theme/theme_notifier.dart';
 import 'package:my_mobile_app/ui/Theme/theme_tonggle.dart';
+import 'package:my_mobile_app/ui/Theme/app_theme.dart';
 
 const _base = 'http://43.173.10.180:3030';
 
@@ -52,26 +53,111 @@ void main() {
 
   tearDown(() => Network.client.close());
 
-  testWidgets('theme toggle exposes 48dp target and updates its label', (
+  testWidgets('theme chooser exposes 48dp target and persists selected mode', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: ThemeToggle()));
-    final enableDark = find.byTooltip('Aktifkan tema gelap');
-    expect(enableDark, findsOneWidget);
-    final targetSize = tester.getSize(enableDark);
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: Center(child: ThemeToggle())),
+      ),
+    );
+    final chooser = find.byTooltip('Pilih tema');
+    expect(chooser, findsOneWidget);
+    final targetSize = tester.getSize(chooser);
     expect(targetSize.width, greaterThanOrEqualTo(48));
     expect(targetSize.height, greaterThanOrEqualTo(48));
-    await tester.tap(enableDark);
+    await tester.tap(chooser);
     await tester.pumpAndSettle();
-    expect(find.byTooltip('Aktifkan tema terang'), findsOneWidget);
-    final preferences = await SharedPreferences.getInstance();
-    expect(preferences.getString('APP_THEME_MODE'), 'dark');
+    expect(find.text('Tampilan'), findsOneWidget);
+    expect(find.text('Sistem'), findsOneWidget);
+    expect(find.text('Terang'), findsOneWidget);
+    expect(find.text('Gelap'), findsOneWidget);
+    await tester.tap(find.text('Gelap'));
+    await tester.pumpAndSettle();
+    expect(ThemeNotifier.themeMode.value, ThemeMode.dark);
+    expect(
+      (await SharedPreferences.getInstance()).getString('APP_THEME_MODE'),
+      'dark',
+    );
   });
 
-  test('theme initialization restores saved mode', () async {
-    SharedPreferences.setMockInitialValues({'APP_THEME_MODE': 'dark'});
+  test(
+    'theme preference restores system, light, and dark after restart',
+    () async {
+      for (final mode in ThemeMode.values) {
+        await ThemeNotifier.setThemeMode(mode);
+        ThemeNotifier.themeMode.value = ThemeMode.system;
+        await ThemeNotifier.initialize();
+        expect(ThemeNotifier.themeMode.value, mode);
+      }
+    },
+  );
+
+  test('legacy preferences remain valid and unknown or unreadable values use system', () async {
+    for (final entry in {
+      'light': ThemeMode.light,
+      'dark': ThemeMode.dark,
+      'system': ThemeMode.system,
+      'unknown': ThemeMode.system,
+    }.entries) {
+      SharedPreferences.setMockInitialValues({'APP_THEME_MODE': entry.key});
+      await ThemeNotifier.initialize();
+      expect(ThemeNotifier.themeMode.value, entry.value);
+    }
+    SharedPreferences.setMockInitialValues({'APP_THEME_MODE': 42});
     await ThemeNotifier.initialize();
-    expect(ThemeNotifier.themeMode.value, ThemeMode.dark);
+    expect(ThemeNotifier.themeMode.value, ThemeMode.system);
+  });
+
+  testWidgets('system theme follows OS brightness', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await ThemeNotifier.setThemeMode(ThemeMode.system);
+    await tester.pumpWidget(
+      ValueListenableBuilder<ThemeMode>(
+        valueListenable: ThemeNotifier.themeMode,
+        builder: (context, mode, child) => MaterialApp(
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: mode,
+          home: Builder(
+            builder: (context) => Text(Theme.of(context).brightness.name),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('light'), findsOneWidget);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    await tester.pumpAndSettle();
+    expect(find.text('dark'), findsOneWidget);
+  });
+  testWidgets('explicit themes ignore system brightness changes', (
+    tester,
+  ) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await tester.pumpWidget(
+      ValueListenableBuilder<ThemeMode>(
+        valueListenable: ThemeNotifier.themeMode,
+        builder: (context, mode, child) => MaterialApp(
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: mode,
+          home: Builder(
+            builder: (context) => Text(Theme.of(context).brightness.name),
+          ),
+        ),
+      ),
+    );
+    await ThemeNotifier.setThemeMode(ThemeMode.light);
+    await tester.pumpAndSettle();
+    expect(find.text('light'), findsOneWidget);
+    await ThemeNotifier.setThemeMode(ThemeMode.dark);
+    await tester.pumpAndSettle();
+    expect(find.text('dark'), findsOneWidget);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    await tester.pumpAndSettle();
+    expect(find.text('dark'), findsOneWidget);
   });
   test('dashboard service parses raw workload array only', () async {
     Network.client = MockClient((request) async {
@@ -236,7 +322,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.byType(TextField), findsOneWidget);
-    expect(find.text('BUAT PROYEK BARU'), findsOneWidget);
+    expect(find.text('Buat proyek baru'), findsOneWidget);
     await tester.tap(find.text('Analitik global'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
@@ -278,10 +364,16 @@ void main() {
     });
     await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('BUAT PROYEK BARU'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Buat proyek baru'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.text('Buat proyek baru'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('Buat proyek baru'),
+      ),
+      findsOneWidget,
+    );
     final dialogRect = tester.getRect(find.byType(Dialog));
     expect(dialogRect.left, greaterThanOrEqualTo(0));
     expect(dialogRect.right, lessThanOrEqualTo(360));

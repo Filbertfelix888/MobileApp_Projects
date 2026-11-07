@@ -66,8 +66,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Halaman 2 dari 3'), findsOneWidget);
 
-      await tester.ensureVisible(find.byIcon(Icons.delete));
-      await tester.tap(find.byIcon(Icons.delete));
+      await tester.ensureVisible(find.byIcon(Icons.delete_outline));
+      await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Hapus'));
       await tester.pump();
@@ -112,8 +112,8 @@ void main() {
       expect(find.text('Halaman 2 dari 2'), findsOneWidget);
       expect(find.text('Page 2'), findsOneWidget);
 
-      await tester.ensureVisible(find.byIcon(Icons.delete));
-      await tester.tap(find.byIcon(Icons.delete));
+      await tester.ensureVisible(find.byIcon(Icons.delete_outline));
+      await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Hapus'));
       await tester.pump();

@@ -102,6 +102,8 @@ void main() {
         .toIso8601String()
         .split('T')
         .first;
+    await tester.tap(find.text('Detail proyek'));
+    await tester.pumpAndSettle();
     expect(find.text(createdDate), findsOneWidget);
     expect(find.text(dueDate), findsOneWidget);
     final boardRequests = requests.where(

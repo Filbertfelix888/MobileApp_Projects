@@ -677,49 +677,53 @@ class _KanbanBoardState extends State<KanbanBoard> {
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        final panelWidth = constraints.maxWidth < 336
-            ? constraints.maxWidth - 16
-            : 320.0;
+        final panelWidth = (constraints.maxWidth - 64)
+            .clamp(0.0, 320.0)
+            .toDouble();
         return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           scrollDirection: Axis.horizontal,
           itemCount: _columns.length,
           itemBuilder: (context, index) {
             final column = _columns[index];
-            return SizedBox(
-              width: panelWidth,
-              child: TaskColumn(
-                column: column,
-                tasks: _tasksByColumn[column.publicId] ?? const [],
-                isLoading: _taskLoading[column.publicId] ?? true,
-                error: _taskErrors[column.publicId],
-                busy: _workspaceLocked,
-                canCreate:
-                    _tasksByColumn.containsKey(column.publicId) &&
-                    _taskErrors[column.publicId] == null,
-                onRetry: () => _loadTasks(column),
-                onOpen: _openTask,
-                onCreate: () => _createTask(column),
-                onRename: () => _renameColumn(column),
-                onDelete: () => _deleteColumn(column),
-                canAcceptDrop: (task) =>
-                    !_workspaceLocked &&
-                    _tasksByColumn.containsKey(column.publicId) &&
-                    _taskErrors[column.publicId] == null &&
-                    _columns.any(
-                      (item) =>
-                          item.publicId != column.publicId &&
-                          _tasksByColumn[item.publicId]?.any(
-                                (known) => known.publicId == task.publicId,
-                              ) ==
-                              true,
-                    ),
-                onDrop: (task, destinationId) async {
-                  await _moveTask(
-                    task.publicId,
-                    _findTaskColumn(task.publicId),
-                    destinationId,
-                  );
-                },
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: SizedBox(
+                width: panelWidth,
+                child: TaskColumn(
+                  column: column,
+                  tasks: _tasksByColumn[column.publicId] ?? const [],
+                  isLoading: _taskLoading[column.publicId] ?? true,
+                  error: _taskErrors[column.publicId],
+                  busy: _workspaceLocked,
+                  canCreate:
+                      _tasksByColumn.containsKey(column.publicId) &&
+                      _taskErrors[column.publicId] == null,
+                  onRetry: () => _loadTasks(column),
+                  onOpen: _openTask,
+                  onCreate: () => _createTask(column),
+                  onRename: () => _renameColumn(column),
+                  onDelete: () => _deleteColumn(column),
+                  canAcceptDrop: (task) =>
+                      !_workspaceLocked &&
+                      _tasksByColumn.containsKey(column.publicId) &&
+                      _taskErrors[column.publicId] == null &&
+                      _columns.any(
+                        (item) =>
+                            item.publicId != column.publicId &&
+                            _tasksByColumn[item.publicId]?.any(
+                                  (known) => known.publicId == task.publicId,
+                                ) ==
+                                true,
+                      ),
+                  onDrop: (task, destinationId) async {
+                    await _moveTask(
+                      task.publicId,
+                      _findTaskColumn(task.publicId),
+                      destinationId,
+                    );
+                  },
+                ),
               ),
             );
           },

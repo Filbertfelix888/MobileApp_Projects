@@ -61,14 +61,13 @@ class _NavbarState extends State<Navbar> {
                   children: [
                     Image.asset(
                       'assets/PM_Logo.png',
-                      width: 32,
-                      height: 32,
+                      width: 24,
+                      height: 24,
                       errorBuilder: (context, error, stackTrace) {
                         final colors = Theme.of(context).colorScheme;
-                        return Container(
-                          width: 32,
-                          height: 32,
-                          color: colors.surfaceContainerHighest,
+                        return SizedBox(
+                          width: 24,
+                          height: 24,
                           child: Icon(
                             Icons.business,
                             color: colors.primary,
@@ -80,15 +79,10 @@ class _NavbarState extends State<Navbar> {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'PROJECT MANAGEMENT',
+                        'Project Management',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
                   ],

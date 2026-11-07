@@ -7,40 +7,61 @@ class ThemeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeNotifier.themeMode,
-      builder: (context, currentMode, child) {
-        final isDark = currentMode == ThemeMode.dark;
-        final colors = Theme.of(context).colorScheme;
-        return IconButton(
-          style: IconButton.styleFrom(
-            minimumSize: const Size.square(48),
-            padding: EdgeInsets.zero,
-            backgroundColor: colors.surfaceContainerHighest,
-            foregroundColor: colors.onSurface,
-          ),
-          iconSize: 20,
-          icon: Icon(
-            isDark ? Icons.wb_sunny_outlined : Icons.brightness_2_outlined,
-          ),
-          tooltip: isDark ? 'Aktifkan tema terang' : 'Aktifkan tema gelap',
-          onPressed: () async {
-            try {
-              await ThemeNotifier.toggleTheme();
-            } catch (_) {
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text(
-                    'Tema berubah, tetapi gagal disimpan dan dapat kembali setelah aplikasi dibuka ulang.',
-                  ),
-                  backgroundColor: Theme.of(context).colorScheme.error,
+    return IconButton(
+      style: IconButton.styleFrom(
+        minimumSize: const Size.square(48),
+        padding: EdgeInsets.zero,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+      ),
+      iconSize: 20,
+      icon: const Icon(Icons.brightness_auto_outlined),
+      tooltip: 'Pilih tema',
+      onPressed: () async {
+        final mode = await showDialog<ThemeMode>(
+          context: context,
+          builder: (dialogContext) => SimpleDialog(
+            title: const Text('Tampilan'),
+            children: [
+              RadioGroup<ThemeMode>(
+                groupValue: ThemeNotifier.themeMode.value,
+                onChanged: (value) {
+                  if (value != null) Navigator.pop(dialogContext, value);
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final option in ThemeMode.values)
+                      RadioListTile<ThemeMode>(
+                        value: option,
+                        title: Text(_themeLabel(option)),
+                      ),
+                  ],
                 ),
-              );
-            }
-          },
+              ),
+            ],
+          ),
         );
+        if (mode == null || !context.mounted) return;
+        try {
+          await ThemeNotifier.setThemeMode(mode);
+        } catch (_) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Tema berubah, tetapi gagal disimpan dan dapat kembali setelah aplikasi dibuka ulang.',
+              ),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
       },
     );
   }
 }
+
+String _themeLabel(ThemeMode mode) => switch (mode) {
+  ThemeMode.system => 'Sistem',
+  ThemeMode.light => 'Terang',
+  ThemeMode.dark => 'Gelap',
+};

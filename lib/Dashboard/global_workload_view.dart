@@ -49,11 +49,23 @@ class GlobalWorkloadView extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         if (loading)
-          const Center(
+          Semantics(
+            label: 'Memuat beban tugas',
+            liveRegion: true,
             child: Padding(
-              padding: EdgeInsets.all(24),
-              child: CircularProgressIndicator(
-                semanticsLabel: 'Memuat beban tugas',
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                children: List.generate(
+                  3,
+                  (_) => Container(
+                    height: 48,
+                    margin: const EdgeInsets.symmetric(vertical: 5),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
               ),
             ),
           )
@@ -76,10 +88,15 @@ class GlobalWorkloadView extends StatelessWidget {
             child: Text('Belum ada tugas yang memiliki penanggung jawab.'),
           )
         else ...[
-          Text('Jumlah penugasan: $assignments'),
+          Text(
+            'Jumlah penugasan: $assignments',
+            style: theme.textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           for (final row in workload) ...[
             ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
               contentPadding: EdgeInsets.zero,
               title: Text(row.assignee.isEmpty ? 'Tanpa nama' : row.assignee),
               subtitle: const Text('Penugasan pada seluruh proyek'),
