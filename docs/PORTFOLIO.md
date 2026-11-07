@@ -18,7 +18,7 @@ Provide mobile access to an existing project management system as a companion to
 | --- | --- |
 | ![Light login](screenshots/light-01-login.png) | ![Dark login](screenshots/dark-01-login.png) |
 | ![Light Kanban](screenshots/light-03-kanban.png) | ![Dark Kanban](screenshots/dark-03-kanban.png) |
-| ![Light analytics](screenshots/light-04-global-analytics.png) | ![Dark board summary](screenshots/dark-04-board-summary.png) |
+| ![Light analytics](screenshots/light-04-global-analytics.png) | ![Dark analytics](screenshots/dark-04-global-analytics.png) |
 
 ## Architecture
 

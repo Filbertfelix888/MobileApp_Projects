@@ -101,7 +101,7 @@ sequenceDiagram
 
 ## Theming and Layout
 
-`AppTheme` defines explicit Material 3 color schemes for light and dark, a `ThemeExtension` for status colors, and shared component themes (inputs, buttons, cards, dialogs, snackbars). `ThemeNotifier.themeMode` feeds `MaterialApp.themeMode`; `System` follows the operating system. Layouts switch at 600 dp: a flat list or full-screen dialog below, a table or bounded dialog above. Home content is capped at 1120 dp wide.
+`AppTheme` defines explicit Material 3 color schemes for light and dark, a `ThemeExtension` for status colors, and shared component themes (inputs, buttons, cards, dialogs, snackbars). `ThemeNotifier.themeMode` feeds `MaterialApp.themeMode`; `System` follows the operating system. The Home project list and the dialogs switch at 600 dp (list or full-screen dialog below, table or bounded dialog above); the Kanban board sizes its column panels by clamping to the available width. Only the Home project and analytics bodies are capped at 1120 dp wide.
 
 ## Testing Approach
 
