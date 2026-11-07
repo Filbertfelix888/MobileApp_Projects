@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'System Login/login_page.dart';
 import 'System Login/register_page.dart';
 import 'Home/home_page.dart';
@@ -7,7 +8,10 @@ import 'app_navigation.dart';
 import 'environment_config.dart';
 import 'session_manager.dart';
 import 'ui/Theme/theme_notifier.dart';
-void main() {
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ThemeNotifier.initialize();
   runApp(const MyApp());
 }
 
@@ -36,7 +40,7 @@ class MyApp extends StatelessWidget {
           title: 'Mobile App',
           debugShowCheckedModeBanner: false,
           themeMode: currentMode,
-          
+
           // Tema Terang (Light Mode)
           theme: ThemeData(
             brightness: Brightness.light,
@@ -64,11 +68,15 @@ class MyApp extends StatelessWidget {
           onGenerateRoute: (settings) {
             final name = settings.name ?? '';
             const prefix = '/projects/';
-            if (!name.startsWith(prefix) || name.length == prefix.length) return null;
+            if (!name.startsWith(prefix) || name.length == prefix.length) {
+              return null;
+            }
             return MaterialPageRoute<void>(
               settings: settings,
               builder: (_) => _ProtectedRoute(
-                child: ProjectDetailPage(boardId: name.substring(prefix.length)),
+                child: ProjectDetailPage(
+                  boardId: name.substring(prefix.length),
+                ),
               ),
             );
           },

@@ -35,13 +35,19 @@ void main() {
   test('getMyBoards uses default query', () async {
     await BoardService.getMyBoards();
     expect(requests.single.method, 'GET');
-    expect(requests.single.url.toString(), '$_base/api/v1/boards/my?filter&limit=10&page=1');
+    expect(
+      requests.single.url.toString(),
+      '$_base/api/v1/boards/my?filter&limit=10&page=1',
+    );
     expect(requests.single.headers['authorization'], 'Bearer t');
   });
 
   test('getMyBoards encodes search and page', () async {
     await BoardService.getMyBoards(search: 'a&b', page: 2);
-    expect(requests.single.url.toString(), '$_base/api/v1/boards/my?filter=a%26b&limit=10&page=2');
+    expect(
+      requests.single.url.toString(),
+      '$_base/api/v1/boards/my?filter=a%26b&limit=10&page=2',
+    );
   });
 
   test('deleteBoard targets /api/v1/boards/:id', () async {
@@ -52,12 +58,19 @@ void main() {
   });
 
   test('createBoard posts payload to /api/v1/boards', () async {
-    final payload = {'title': 'T', 'description': 'D', 'due_date': '2026-11-05T00:00:00.000Z'};
+    final payload = {
+      'title': 'T',
+      'description': 'D',
+      'due_date': '2026-11-05T00:00:00.000Z',
+    };
     await BoardService.createBoard(payload);
     expect(requests.single.method, 'POST');
     expect(requests.single.url.toString(), '$_base/api/v1/boards');
     expect(jsonDecode(requests.single.body), payload);
-    expect(requests.single.headers['content-type'], contains('application/json'));
+    expect(
+      requests.single.headers['content-type'],
+      contains('application/json'),
+    );
     expect(requests.single.headers['authorization'], 'Bearer t');
   });
 
@@ -75,7 +88,14 @@ void main() {
     final calls = <String, Future<dynamic> Function()>{
       'get': () => Network.get('/x'),
       'post': () => Network.post('/x', {}),
+      'put': () => Network.put('/x', {}),
       'delete': () => Network.delete('/x'),
+      'delete body': () => Network.delete(
+        '/x',
+        payload: {
+          'user_id': ['u'],
+        },
+      ),
     };
 
     for (final entry in calls.entries) {
@@ -91,17 +111,22 @@ void main() {
         respond(400, '{"message":"Failed to get boards"}');
         await expectLater(
           entry.value(),
-          throwsA(predicate((e) => e.toString() == 'Exception: Failed to get boards')),
+          throwsA(
+            predicate((e) => e.toString() == 'Exception: Failed to get boards'),
+          ),
         );
       });
 
-      test('${entry.key}: JSON error without message falls back with status', () async {
-        respond(500, '[1]');
-        await expectLater(
-          entry.value(),
-          throwsA(predicate((e) => e.toString().contains('HTTP 500'))),
-        );
-      });
+      test(
+        '${entry.key}: JSON error without message falls back with status',
+        () async {
+          respond(500, '[1]');
+          await expectLater(
+            entry.value(),
+            throwsA(predicate((e) => e.toString().contains('HTTP 500'))),
+          );
+        },
+      );
 
       test('${entry.key}: 2xx non-JSON body throws', () async {
         respond(200, 'ok');
@@ -113,18 +138,33 @@ void main() {
     }
 
     for (final entry in calls.entries) {
-      test('${entry.key}: authenticated 401 throws UnauthorizedException', () async {
-        respond(401, '{"message":"Error unauthorized"}');
-        await expectLater(entry.value(), throwsA(isA<UnauthorizedException>()));
-      });
+      test(
+        '${entry.key}: authenticated 401 throws UnauthorizedException',
+        () async {
+          respond(401, '{"message":"Error unauthorized"}');
+          await expectLater(
+            entry.value(),
+            throwsA(isA<UnauthorizedException>()),
+          );
+        },
+      );
     }
 
     test('login and register 401 stay ordinary errors', () async {
       respond(401, '{"message":"Invalid credentials"}');
-      for (final call in <Future<dynamic> Function()>[() => AuthService.login({}), () => AuthService.signUp({})]) {
+      for (final call in <Future<dynamic> Function()>[
+        () => AuthService.login({}),
+        () => AuthService.signUp({}),
+      ]) {
         await expectLater(
           call(),
-          throwsA(predicate((e) => e is! UnauthorizedException && e.toString() == 'Exception: Invalid credentials')),
+          throwsA(
+            predicate(
+              (e) =>
+                  e is! UnauthorizedException &&
+                  e.toString() == 'Exception: Invalid credentials',
+            ),
+          ),
         );
       }
     });

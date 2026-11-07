@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../network.dart';
 
 class ModalAddNewProject extends StatefulWidget {
@@ -12,7 +13,7 @@ class ModalAddNewProject extends StatefulWidget {
 
 class _ModalAddNewProjectState extends State<ModalAddNewProject> {
   final _formKey = GlobalKey<FormState>();
-  
+
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _dueDateController = TextEditingController();
@@ -29,7 +30,8 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
 
   void _updateDateText(DateTime? date) {
     if (date != null) {
-      _dueDateController.text = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+      _dueDateController.text =
+          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     }
   }
 
@@ -79,7 +81,7 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -100,122 +102,133 @@ class _ModalAddNewProjectState extends State<ModalAddNewProject> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Container(
-        constraints: const BoxConstraints(minWidth: 400, maxWidth: 500),
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Modal Title
-            Text(
-              'Buat proyek baru',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.titleLarge?.color,
+        constraints: BoxConstraints(
+          minWidth: 280,
+          maxWidth: 500,
+          maxHeight: MediaQuery.sizeOf(context).height * .85,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Buat proyek baru',
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Tampilan Loading jika _isLoading == true (setara renderLoading)
-            if (_isLoading)
-              const SizedBox(
-                height: 250,
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            // Tampilan Form jika sedang tidak loading (setara renderForm)
-            else
-              Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Field: Nama Proyek
-                    TextFormField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nama proyek',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Nama proyek wajib diisi';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Field: Deskripsi Proyek (multiline / rows={5})
-                    TextFormField(
-                      controller: _descriptionController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Deskripsi',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.all(12),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Deskripsi wajib diisi';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Field: DatePicker Deadline Proyek
-                    TextFormField(
-                      controller: _dueDateController,
-                      readOnly: true,
-                      onTap: () => _selectDate(context),
-                      decoration: const InputDecoration(
-                        labelText: 'Deadline proyek',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today_outlined),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Deadline proyek wajib diisi';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Actions: Tombol Simpan & Batalkan
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        ElevatedButton(
-                          onPressed: _handleSubmit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1976D2),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              // Tampilan Loading jika _isLoading == true (setara renderLoading)
+              if (_isLoading)
+                const SizedBox(
+                  height: 250,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              // Tampilan Form jika sedang tidak loading (setara renderForm)
+              else
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Field: Nama Proyek
+                      TextFormField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama proyek',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
                           ),
-                          child: const Text('Simpan', style: TextStyle(color: Colors.white)),
                         ),
-                        const SizedBox(width: 8),
-                        OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Nama proyek wajib diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Field: Deskripsi Proyek (multiline / rows={5})
+                      TextFormField(
+                        controller: _descriptionController,
+                        maxLines: 4,
+                        decoration: const InputDecoration(
+                          labelText: 'Deskripsi',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.all(12),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Deskripsi wajib diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Field: DatePicker Deadline Proyek
+                      TextFormField(
+                        controller: _dueDateController,
+                        readOnly: true,
+                        onTap: () => _selectDate(context),
+                        decoration: const InputDecoration(
+                          labelText: 'Deadline proyek',
+                          border: OutlineInputBorder(),
+                          suffixIcon: Icon(Icons.calendar_today_outlined),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
                           ),
-                          child: const Text('Batalkan'),
                         ),
-                      ],
-                    ),
-                  ],
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Deadline proyek wajib diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Actions: Save or cancel.
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _handleSubmit,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(48, 48),
+                              backgroundColor: colors.primary,
+                              foregroundColor: colors.onPrimary,
+                            ),
+                            child: const Text('Simpan'),
+                          ),
+                          OutlinedButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(48, 48),
+                            ),
+                            child: const Text('Batalkan'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

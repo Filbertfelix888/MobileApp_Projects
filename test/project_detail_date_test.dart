@@ -34,28 +34,37 @@ void main() {
         .toIso8601String()
         .split('T')
         .first;
-    Network.client = MockClient((_) async => http.Response(
-          jsonEncode({
-            'status': 'Success',
-            'response_code': 200,
-            'data': {
-              'public_id': id,
-              'title': 'Alpha',
-              'description': 'Date test',
-              'created_at': '2026-11-01T01:00:00+07:00',
-              'due_date': '2026-11-04T17:00:00Z',
-            },
-          }),
-          200,
-        ));
+    Network.client = MockClient((request) async {
+      if (request.url.path.endsWith('/lists')) {
+        return http.Response('{"data":{"Lists":[]}}', 200);
+      }
+      if (request.url.path.endsWith('/members')) {
+        return http.Response('{"data":[]}', 200);
+      }
+      if (request.url.path.endsWith('/cards')) {
+        return http.Response('{"data":[]}', 200);
+      }
+      return http.Response(
+        jsonEncode({
+          'status': 'Success',
+          'response_code': 200,
+          'data': {
+            'public_id': id,
+            'title': 'Alpha',
+            'description': 'Date test',
+            'created_at': '2026-11-01T01:00:00+07:00',
+            'due_date': '2026-11-04T17:00:00Z',
+          },
+        }),
+        200,
+      );
+    });
   });
 
   tearDown(() => Network.client.close());
 
   testWidgets('converts timestamps to local calendar dates', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: ProjectDetailPage(boardId: id),
-    ));
+    await tester.pumpWidget(MaterialApp(home: ProjectDetailPage(boardId: id)));
     await tester.pumpAndSettle();
 
     expect(find.text(created), findsOneWidget);

@@ -2,31 +2,37 @@
 
 ## Project Overview
 
-Flutter application for login, registration, and a placeholder dashboard. The backend is external to this repository.
+Flutter app for authentication, DEV/QA isolation, projects, Kanban tasks, members, assignees, and workload analytics. The Go backend is external.
 
 ## Architecture & Data Flow
 
-- `lib/main.dart` starts `MyApp` at `/`; the route checks `SessionManager` and shows login unless a nonempty access token exists. Named routes map `/signup` to registration.
-- Login saves response `data` through `SessionManager`; logout clears it. Registration returns to login. The dashboard route opens only with a nonempty access token.
-- `EnvironmentConfig` in `lib/environment_config.dart` persists selected QA/DEV backend. Fresh installs use QA (`http://43.173.10.180:3030`); DEV uses `http://10.0.2.2:3030`. Environment switches clear the stored session, and untagged legacy sessions are invalidated.
-- `Network` in `lib/network.dart` uses selected backend for GET/POST/DELETE and auth requests. Responses must contain JSON, including errors. Both configured endpoints use plain HTTP.
+- `lib/main.dart` initializes the saved theme, starts `MyApp`, and protects `/` and `/projects/:id` with the current environment session.
+- Login saves response `data`; logout clears the session. Registration returns to login.
+- `EnvironmentConfig` persists QA/DEV selection. Fresh installs use QA (`http://43.173.10.180:3030`); DEV uses `http://10.0.2.2:3030`. Switching clears the session; untagged legacy sessions are invalidated.
+- `HomePage` loads projects and exposes global workload analytics. `DashboardService` parses authenticated `GET /api/v1/dashboard/workload` as a raw array.
+- `ProjectDetailPage` hosts `KanbanBoard`; `TaskService` owns board columns, tasks, members, and assignees. The board summary derives from task details.
+- `ThemeNotifier` persists `APP_THEME_MODE` independently of backend environment selection.
+- `Network` sends authenticated GET/POST/PUT/DELETE requests to the selected backend. Responses must contain JSON, including errors. Configured endpoints use plain HTTP.
+- Backend limitations: global workload has no project/user filter and groups by assignee name; member `GET` returns raw user records including password hashes; board-level authorization and reorder routes are absent.
 
 ## Key Directories
 
-- `lib/System Login/`: login, registration, and dashboard widgets. Quote paths containing the space in shell commands.
-- `lib/`: app entry point, network client, and session persistence.
-- `test/`: Flutter widget tests.
-- `android/`, `ios/`, `web/`, `windows/`, `macos/`, `linux/`: platform runners and build configuration.
+- `lib/Dashboard/`: global workload API model and view.
+- `lib/Task/`: Kanban columns, task forms/details, members, assignees, and board summary.
+- `lib/System Login/`: login, registration, and navigation bar.
+- `lib/Project/`: protected project details and board workspace.
+- `lib/`: app entry point, network client, environment, session, and theme persistence.
+- `test/`: Flutter widget and service regression tests.
+- `android/`, `ios/`, `web/`, `windows/`, `macos/`, `linux/`: platform runners.
 
 ## Development Commands
 
 ```sh
-flutter pub get          # Resolve dependencies
-flutter run              # Run on a selected device
-flutter analyze           # Static analysis
-flutter test              # Run tests
-flutter test test/widget_test.dart
-flutter build apk         # Android build; use web, windows, macos, linux, or ios for other targets
+flutter pub get
+flutter run
+flutter analyze --no-pub
+flutter test --no-pub
+flutter build apk --debug --no-pub
 ```
 
 ## Code Conventions & Common Patterns
@@ -38,12 +44,13 @@ flutter build apk         # Android build; use web, windows, macos, linux, or io
 
 ## Important Files
 
-- `lib/main.dart`: entry point, theme, and routes.
-- `lib/network.dart`: base URL, JSON requests, bearer header, and authentication endpoints.
-- `lib/session_manager.dart`: JSON session storage and `access_token` lookup via `shared_preferences`.
-- `pubspec.yaml` / `pubspec.lock`: dependencies, SDK constraint, and locked versions.
-- `analysis_options.yaml`: lint configuration and platform/build exclusions.
-- `android/app/build.gradle.kts`: Android build settings; release currently uses debug signing and needs proper signing before distribution.
+- `lib/main.dart`: entry point, theme initialization, and protected routes.
+- `lib/network.dart`: HTTP client, auth, projects, and authenticated API calls.
+- `lib/environment_config.dart`: QA/DEV selection, session isolation, and generation guard.
+- `lib/session_manager.dart`: session storage and `access_token` validation.
+- `lib/Dashboard/dashboard_service.dart`: raw global workload endpoint parser.
+- `lib/Task/task_service.dart`: board/task/member/assignee API integration.
+- `lib/ui/Theme/theme_notifier.dart`: persisted light/dark preference.
 
 ## Runtime/Tooling Preferences
 
@@ -51,4 +58,4 @@ Use Flutter and Dart Pub (`flutter pub`), not Node or Bun. `pubspec.yaml` requir
 
 ## Testing & QA
 
-Tests use `flutter_test`; lints use `flutter_lints`. The existing `test/widget_test.dart` is the generated counter test, but `MyApp` now starts on the login page, so its expectations are stale. It does not cover authentication or sessions. No coverage threshold or CI workflow is configured. Add focused tests for changed behavior and run `flutter analyze` plus relevant tests when practical.
+Tests use `flutter_test` and `flutter_lints`. `test/widget_test.dart` covers protected navigation, session restoration, logout, and storage failures. `test/environment_test.dart` covers environment persistence, switching, isolation, and stale login responses. Project, Kanban, task-session, and global dashboard behavior has focused regression coverage in `test/`. See `MANUAL_TESTING.md` for the Phase 1–5 live-backend checklist.

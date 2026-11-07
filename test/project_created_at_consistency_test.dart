@@ -43,22 +43,22 @@ void main() {
             'status': 'Success',
             'response_code': 200,
             'data': [board],
-            'meta': {
-              'page': 1,
-              'limit': 10,
-              'total': 1,
-              'total_pages': 1,
-            },
+            'meta': {'page': 1, 'limit': 10, 'total': 1, 'total_pages': 1},
           }),
           200,
         );
       }
+      if (request.url.path.endsWith('/lists')) {
+        return http.Response('{"data":{"Lists":[]}}', 200);
+      }
+      if (request.url.path.endsWith('/members')) {
+        return http.Response('{"data":[]}', 200);
+      }
+      if (request.url.path.endsWith('/cards')) {
+        return http.Response('{"data":[]}', 200);
+      }
       return http.Response(
-        jsonEncode({
-          'status': 'Success',
-          'response_code': 200,
-          'data': board,
-        }),
+        jsonEncode({'status': 'Success', 'response_code': 200, 'data': board}),
         200,
       );
     });
@@ -66,21 +66,24 @@ void main() {
 
   tearDown(() => Network.client.close());
 
-  testWidgets('list and detail show created_at in device-local date',
-      (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: const HomePage(),
-      onGenerateRoute: (settings) {
-        final name = settings.name ?? '';
-        if (name.startsWith('/projects/')) {
-          return MaterialPageRoute<void>(
-            settings: settings,
-            builder: (_) => const ProjectDetailPage(boardId: _id),
-          );
-        }
-        return null;
-      },
-    ));
+  testWidgets('list and detail show created_at in device-local date', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: const HomePage(),
+        onGenerateRoute: (settings) {
+          final name = settings.name ?? '';
+          if (name.startsWith('/projects/')) {
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => const ProjectDetailPage(boardId: _id),
+            );
+          }
+          return null;
+        },
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(localCreatedDate), findsOneWidget);

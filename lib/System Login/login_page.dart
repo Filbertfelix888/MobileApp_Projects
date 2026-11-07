@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../environment_config.dart';
 import '../network.dart';
+import 'email_validation.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -18,8 +21,6 @@ class _LoginPageState extends State<LoginPage> {
   String? _sessionWarning;
   bool _sessionWarningRead = false;
   int _requestId = 0;
-
-  final RegExp _emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
 
   Future<void> _onSubmit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -65,9 +66,8 @@ class _LoginPageState extends State<LoginPage> {
           requestId == _requestId &&
           EnvironmentConfig.generation == environment.generation + 1 &&
           EnvironmentConfig.selected.value.name == environment.environment) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login Berhasil!')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Login Berhasil!')));
         Navigator.pushReplacementNamed(context, '/');
       }
     } catch (error) {
@@ -78,14 +78,11 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
         if (sessionPersistenceAttempted) {
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            '/login',
-            (_) => false,
-          );
+          Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
         }
       }
     } finally {
@@ -107,7 +104,7 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -138,6 +135,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -156,12 +154,11 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                       const Text(
+                      const Text(
                         'Masuk',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          
                         ),
                       ),
                       if (_sessionWarning != null)
@@ -169,7 +166,8 @@ class _LoginPageState extends State<LoginPage> {
                           content: Text(_sessionWarning!),
                           actions: [
                             TextButton(
-                              onPressed: () => setState(() => _sessionWarning = null),
+                              onPressed: () =>
+                                  setState(() => _sessionWarning = null),
                               child: const Text('OK'),
                             ),
                           ],
@@ -181,7 +179,9 @@ class _LoginPageState extends State<LoginPage> {
                           return ValueListenableBuilder<BackendEnvironment>(
                             valueListenable: EnvironmentConfig.selected,
                             builder: (context, environment, child) {
-                              return DropdownButtonFormField<BackendEnvironment>(
+                              return DropdownButtonFormField<
+                                BackendEnvironment
+                              >(
                                 key: ValueKey(
                                   '${environment.name}:${EnvironmentConfig.generation}:$switching',
                                 ),
@@ -203,7 +203,9 @@ class _LoginPageState extends State<LoginPage> {
                                 onChanged: switching
                                     ? null
                                     : (value) {
-                                        if (value != null) _selectEnvironment(value);
+                                        if (value != null) {
+                                          _selectEnvironment(value);
+                                        }
                                       },
                               );
                             },
@@ -217,11 +219,18 @@ class _LoginPageState extends State<LoginPage> {
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Email harus di isi';
-                          if (!_emailRegExp.hasMatch(value)) return 'Format email tidak valid';
+                          if (value == null || value.isEmpty) {
+                            return 'Email harus di isi';
+                          }
+                          if (!isValidEmailAddress(value)) {
+                            return 'Format email tidak valid';
+                          }
                           return null;
                         },
                       ),
@@ -232,14 +241,28 @@ class _LoginPageState extends State<LoginPage> {
                         decoration: InputDecoration(
                           labelText: 'Password',
                           border: const OutlineInputBorder(),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
                           suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            tooltip: _obscurePassword
+                                ? 'Tampilkan password'
+                                : 'Sembunyikan password',
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Password harus di isi';
+                          if (value == null || value.isEmpty) {
+                            return 'Password harus di isi';
+                          }
                           return null;
                         },
                       ),
@@ -249,28 +272,30 @@ class _LoginPageState extends State<LoginPage> {
                         builder: (context, switching, child) {
                           return SizedBox(
                             width: double.infinity,
-                            height: 42,
                             child: ElevatedButton(
-                              onPressed: _isLoading || switching ? null : _onSubmit,
+                              onPressed: _isLoading || switching
+                                  ? null
+                                  : _onSubmit,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1976D2),
+                                minimumSize: const Size.fromHeight(48),
+                                backgroundColor: colorScheme.primary,
+                                foregroundColor: colorScheme.onPrimary,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 20,
                                       height: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Colors.white,
+                                        color: colorScheme.onPrimary,
                                       ),
                                     )
                                   : const Text(
                                       'Masuk ke akun Anda',
                                       style: TextStyle(
-                                        color: Colors.white,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -287,8 +312,12 @@ class _LoginPageState extends State<LoginPage> {
                             child: TextButton(
                               onPressed: _isLoading || switching
                                   ? null
-                                  : () => Navigator.pushNamed(context, '/signup'),
-                              child: const Text('Daftar baru', style: TextStyle(color: Color(0xFF1976D2))),
+                                  : () =>
+                                        Navigator.pushNamed(context, '/signup'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: colorScheme.primary,
+                              ),
+                              child: const Text('Daftar baru'),
                             ),
                           );
                         },

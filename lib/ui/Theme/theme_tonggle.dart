@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'theme_notifier.dart';
 
 class ThemeToggle extends StatelessWidget {
@@ -10,34 +11,34 @@ class ThemeToggle extends StatelessWidget {
       valueListenable: ThemeNotifier.themeMode,
       builder: (context, currentMode, child) {
         final isDark = currentMode == ThemeMode.dark;
-
-        return Container(
-          width: 36,
-          height: 36,
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isDark ? Colors.grey[800] : Colors.grey[100],
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 2,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: IconButton(
+        final colors = Theme.of(context).colorScheme;
+        return IconButton(
+          style: IconButton.styleFrom(
+            minimumSize: const Size.square(48),
             padding: EdgeInsets.zero,
-            iconSize: 20,
-            icon: Icon(
-              isDark ? Icons.wb_sunny_outlined : Icons.brightness_2_outlined,
-              color: isDark ? Colors.white : const Color(0xFF111111),
-            ),
-            tooltip: 'Toggle Theme',
-            onPressed: () {
-              ThemeNotifier.toggleTheme();
-            },
+            backgroundColor: colors.surfaceContainerHighest,
+            foregroundColor: colors.onSurface,
           ),
+          iconSize: 20,
+          icon: Icon(
+            isDark ? Icons.wb_sunny_outlined : Icons.brightness_2_outlined,
+          ),
+          tooltip: isDark ? 'Aktifkan tema terang' : 'Aktifkan tema gelap',
+          onPressed: () async {
+            try {
+              await ThemeNotifier.toggleTheme();
+            } catch (_) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    'Tema berubah, tetapi gagal disimpan dan dapat kembali setelah aplikasi dibuka ulang.',
+                  ),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+              );
+            }
+          },
         );
       },
     );

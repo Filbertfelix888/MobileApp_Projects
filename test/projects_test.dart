@@ -17,7 +17,12 @@ import 'package:my_mobile_app/session_manager.dart';
 const _base = 'http://43.173.10.180:3030/api/v1/boards';
 const _id = '11111111-1111-1111-1111-111111111111';
 
-http.Response _list(String title, {String desc = 'First', int totalPages = 1, bool empty = false}) {
+http.Response _list(
+  String title, {
+  String desc = 'First',
+  int totalPages = 1,
+  bool empty = false,
+}) {
   return http.Response(
     jsonEncode({
       'status': 'Success',
@@ -25,7 +30,12 @@ http.Response _list(String title, {String desc = 'First', int totalPages = 1, bo
       'data': empty
           ? []
           : [
-              {'public_id': _id, 'title': title, 'description': desc, 'created_at': '2026-11-01T08:00:00Z'},
+              {
+                'public_id': _id,
+                'title': title,
+                'description': desc,
+                'created_at': '2026-11-01T08:00:00Z',
+              },
             ],
       'meta': {'page': 1, 'limit': 10, 'total': 1, 'total_pages': totalPages},
     }),
@@ -49,7 +59,10 @@ void main() {
 
   tearDown(() => Network.client.close());
 
-  Future<void> pumpHome(WidgetTester tester, Future<http.Response> Function(http.Request) handler) async {
+  Future<void> pumpHome(
+    WidgetTester tester,
+    Future<http.Response> Function(http.Request) handler,
+  ) async {
     Network.client = MockClient((request) {
       requests.add(request);
       return handler(request);
@@ -61,10 +74,15 @@ void main() {
   IconButton iconButton(WidgetTester tester, IconData icon) =>
       tester.widget<IconButton>(find.widgetWithIcon(IconButton, icon));
 
-  testWidgets('create validates fields and submits payload, then refreshes', (tester) async {
+  testWidgets('create validates fields and submits payload, then refreshes', (
+    tester,
+  ) async {
     await pumpHome(tester, (request) async {
       if (request.method == 'POST') {
-        return http.Response('{"message":"Board Created Successfully","data":{}}', 200);
+        return http.Response(
+          '{"message":"Board Created Successfully","data":{}}',
+          200,
+        );
       }
       return _list('Alpha');
     });
@@ -77,8 +95,14 @@ void main() {
     expect(requests.where((request) => request.method == 'POST'), isEmpty);
 
     await tester.enterText(find.byType(TextFormField).at(0), 'Proyek baru');
-    await tester.enterText(find.byType(TextFormField).at(1), 'Deskripsi proyek');
-    final displayedDate = tester.widget<TextFormField>(find.byType(TextFormField).at(2)).controller!.text;
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'Deskripsi proyek',
+    );
+    final displayedDate = tester
+        .widget<TextFormField>(find.byType(TextFormField).at(2))
+        .controller!
+        .text;
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
 
@@ -90,8 +114,14 @@ void main() {
     expect(payload['title'], 'Proyek baru');
     expect(payload['description'], 'Deskripsi proyek');
     final dueDate = payload['due_date'] as String;
-    expect(dueDate, matches(RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$')));
-    expect(DateTime.parse(dueDate).toLocal().toIso8601String().substring(0, 10), displayedDate);
+    expect(
+      dueDate,
+      matches(RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$')),
+    );
+    expect(
+      DateTime.parse(dueDate).toLocal().toIso8601String().substring(0, 10),
+      displayedDate,
+    );
     expect(find.text('Buat proyek baru'), findsNothing);
     expect(requests.where((request) => request.method == 'GET').length, 2);
   });
@@ -102,23 +132,53 @@ void main() {
       if (request.method == 'POST') {
         attempts++;
         return attempts == 1
-            ? http.Response('{"message":"Failed to create board","error":"invalid"}', 400)
-            : http.Response('{"message":"Board Created Successfully","data":{}}', 200);
+            ? http.Response(
+                '{"message":"Failed to create board","error":"invalid"}',
+                400,
+              )
+            : http.Response(
+                '{"message":"Board Created Successfully","data":{}}',
+                200,
+              );
       }
       return _list('Alpha');
     });
     await tester.tap(find.text('BUAT PROYEK BARU'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).at(0), 'Proyek baru');
-    await tester.enterText(find.byType(TextFormField).at(1), 'Deskripsi proyek');
-    final date = tester.widget<TextFormField>(find.byType(TextFormField).at(2)).controller!.text;
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'Deskripsi proyek',
+    );
+    final date = tester
+        .widget<TextFormField>(find.byType(TextFormField).at(2))
+        .controller!
+        .text;
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
     expect(find.text('Failed to create board'), findsOneWidget);
     expect(find.text('Buat proyek baru'), findsOneWidget);
-    expect(tester.widget<TextFormField>(find.byType(TextFormField).at(0)).controller!.text, 'Proyek baru');
-    expect(tester.widget<TextFormField>(find.byType(TextFormField).at(1)).controller!.text, 'Deskripsi proyek');
-    expect(tester.widget<TextFormField>(find.byType(TextFormField).at(2)).controller!.text, date);
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).at(0))
+          .controller!
+          .text,
+      'Proyek baru',
+    );
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).at(1))
+          .controller!
+          .text,
+      'Deskripsi proyek',
+    );
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).at(2))
+          .controller!
+          .text,
+      date,
+    );
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
     expect(attempts, 2);
@@ -161,12 +221,17 @@ void main() {
     await tester.enterText(find.byType(TextField), 'a&b');
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
-    expect(requests.last.url.toString(), '$_base/my?filter=a%26b&limit=10&page=1');
+    expect(
+      requests.last.url.toString(),
+      '$_base/my?filter=a%26b&limit=10&page=1',
+    );
   });
 
   testWidgets('deleting last row on page 2 refetches page 1', (tester) async {
     await pumpHome(tester, (request) async {
-      if (request.method == 'DELETE') return http.Response('{"message":"ok"}', 200);
+      if (request.method == 'DELETE') {
+        return http.Response('{"message":"ok"}', 200);
+      }
       return _list('Alpha', totalPages: 2);
     });
     await tester.tap(find.byIcon(Icons.chevron_right));
@@ -184,7 +249,9 @@ void main() {
 
   testWidgets('delete failure shows server message', (tester) async {
     await pumpHome(tester, (request) async {
-      if (request.method == 'DELETE') return http.Response('{"message":"Failed to delete board"}', 400);
+      if (request.method == 'DELETE') {
+        return http.Response('{"message":"Failed to delete board"}', 400);
+      }
       return _list('Alpha');
     });
     await tester.ensureVisible(find.byIcon(Icons.delete));
@@ -195,7 +262,32 @@ void main() {
     expect(find.text('Failed to delete board'), findsOneWidget);
   });
 
-  testWidgets('stale response does not overwrite newer search result', (tester) async {
+  testWidgets('project delete explains that child tasks are removed', (
+    tester,
+  ) async {
+    await pumpHome(tester, (request) async {
+      if (request.method == 'DELETE') {
+        return http.Response('{"message":"ok"}', 200);
+      }
+      return _list('Alpha');
+    });
+    await tester.ensureVisible(find.byIcon(Icons.delete));
+    await tester.tap(find.byIcon(Icons.delete));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Menghapus proyek ini juga menghapus semua kolom dan tugas di dalamnya. Tindakan ini tidak dapat dibatalkan.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Batal'));
+    await tester.pumpAndSettle();
+    expect(requests.where((request) => request.method == 'DELETE'), isEmpty);
+  });
+
+  testWidgets('stale response does not overwrite newer search result', (
+    tester,
+  ) async {
     final first = Completer<http.Response>();
     var calls = 0;
     await tester.runAsync(() async {});
@@ -236,8 +328,8 @@ void main() {
       }
     }
 
-    Future<String?> storedToken(WidgetTester tester) async =>
-        (await tester.runAsync<String?>(() => SessionManager.getTokenForEnvironment('qa')));
+    Future<String?> storedToken(WidgetTester tester) async => (await tester
+        .runAsync<String?>(() => SessionManager.getTokenForEnvironment('qa')));
 
     testWidgets('401 on list clears session and opens Login', (tester) async {
       await pumpWithLogin(tester, (_) async => unauthorized);
@@ -259,14 +351,21 @@ void main() {
       expect(await storedToken(tester), isNull);
     });
 
-    testWidgets('non-401 error keeps session and stays on page', (tester) async {
-      await pumpWithLogin(tester, (_) async => http.Response('{"message":"boom"}', 500));
+    testWidgets('non-401 error keeps session and stays on page', (
+      tester,
+    ) async {
+      await pumpWithLogin(
+        tester,
+        (_) async => http.Response('{"message":"boom"}', 500),
+      );
       expect(find.byType(LoginPage), findsNothing);
       expect(find.text('boom'), findsOneWidget);
       expect(await storedToken(tester), 't');
     });
 
-    testWidgets('stale 401 after logout does not navigate again', (tester) async {
+    testWidgets('stale 401 after logout does not navigate again', (
+      tester,
+    ) async {
       final first = Completer<http.Response>();
       await pumpWithLogin(tester, (_) => first.future, settle: false);
       expect(requests, hasLength(1));
@@ -279,13 +378,17 @@ void main() {
       expect(find.byType(LoginPage), findsNothing);
     });
 
-    testWidgets('stale 401 after environment switch keeps the new session', (tester) async {
+    testWidgets('stale 401 after environment switch keeps the new session', (
+      tester,
+    ) async {
       final first = Completer<http.Response>();
       await pumpWithLogin(tester, (_) => first.future, settle: false);
       expect(requests, hasLength(1));
       await tester.runAsync(() async {
         await EnvironmentConfig.select(BackendEnvironment.dev);
-        await SessionManager.setSession({'access_token': 'dev-token'}, environment: 'dev');
+        await SessionManager.setSession({
+          'access_token': 'dev-token',
+        }, environment: 'dev');
       });
       first.complete(unauthorized);
       await tester.runAsync(
