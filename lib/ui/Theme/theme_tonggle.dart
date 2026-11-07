@@ -20,7 +20,7 @@ class ThemeToggle extends StatelessWidget {
             color: isDark ? Colors.grey[800] : Colors.grey[100],
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 2,
                 offset: const Offset(0, 1),
               ),

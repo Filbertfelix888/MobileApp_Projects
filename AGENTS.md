@@ -6,10 +6,10 @@ Flutter application for login, registration, and a placeholder dashboard. The ba
 
 ## Architecture & Data Flow
 
-- `lib/main.dart` starts `MyApp` at `/`; the route checks `SessionManager` and shows login unless a nonempty access token exists. Named routes map `/signup` to registration.
-- Login saves response `data` through `SessionManager`; logout clears it. Registration returns to login. The dashboard route opens only with a nonempty access token.
-- `EnvironmentConfig` in `lib/environment_config.dart` persists selected QA/DEV backend. Fresh installs use QA (`http://43.173.10.180:3030`); DEV uses `http://10.0.2.2:3030`. Environment switches clear the stored session, and untagged legacy sessions are invalidated.
-- `Network` in `lib/network.dart` uses selected backend for GET/POST/DELETE and auth requests. Responses must contain JSON, including errors. Both configured endpoints use plain HTTP.
+- `lib/main.dart` starts `MyApp` at `/login`; named routes map `/signup` to registration and `/` to the dashboard.
+- Form pages call `AuthService` in `lib/network.dart`. `Network.post` sends JSON to `/v1/auth/login` or `/v1/auth/register`, adding a saved bearer token when available.
+- Login saves the response's `data` through `SessionManager`; logout clears it. Registration returns to login. The dashboard currently does not guard access by session.
+- `Network.baseUrl` is `http://10.0.2.2:3030`, intended for an Android emulator accessing the host. Other targets need a reachable backend address. Responses must contain JSON, including errors.
 
 ## Key Directories
 
@@ -23,10 +23,10 @@ Flutter application for login, registration, and a placeholder dashboard. The ba
 ```sh
 flutter pub get          # Resolve dependencies
 flutter run              # Run on a selected device
-flutter analyze           # Static analysis
-flutter test              # Run tests
+flutter analyze          # Static analysis
+flutter test             # Run tests
 flutter test test/widget_test.dart
-flutter build apk         # Android build; use web, windows, macos, linux, or ios for other targets
+flutter build apk        # Android build; use web, windows, macos, linux, or ios for other targets
 ```
 
 ## Code Conventions & Common Patterns

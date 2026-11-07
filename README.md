@@ -24,7 +24,6 @@ Form state is local to each `StatefulWidget`. Network and session operations use
 lib/
   main.dart                  App entry point, theme, and routes
   network.dart               HTTP client and authentication endpoints
-  environment_config.dart     QA/DEV selection and persistence
   session_manager.dart       Local session storage
   System Login/              Login, registration, and dashboard screens
 test/                        Flutter widget tests
@@ -46,7 +45,7 @@ From the repository root, resolve dependencies:
 flutter pub get
 ```
 
-Choose QA or DEV from the login screen before signing in. The selected environment persists between launches; switching environments clears the current session and requires a new login. Login waits while switching is in progress. If session storage fails, the app reports the error and blocks protected access for the current process.
+Start the external backend using its own setup instructions. Configure the API address as described below before using a target that cannot reach the default address.
 
 ## Running the Application
 
@@ -60,12 +59,7 @@ Select a target if Flutter prompts for one. See the [Flutter documentation](http
 
 ## Backend API Integration
 
-The login screen lets users select a persisted backend environment:
-
-- **QA** (fresh-install default): `http://43.173.10.180:3030`
-- **DEV**: `http://10.0.2.2:3030` (Android emulator address for the host machine)
-
-GET, POST, DELETE, login, and registration use the selected base URL while retaining their existing `/v1/...` paths. Changing environment clears only `SESSION_KEY`; users must log in again. Existing sessions without an environment tag are invalidated on first initialization. The configured endpoints use plain HTTP, not TLS; credentials and bearer tokens can be intercepted on untrusted networks. Use only for QA/development, and do not send production credentials.
+`lib/network.dart` sets `Network.baseUrl` to `http://10.0.2.2:3030`. On an Android emulator, `10.0.2.2` addresses the host machine. For a physical device or another target, change the constant to an address reachable from that target. Platform network and HTTP transport policies may also require configuration.
 
 The app sends JSON POST requests to:
 
@@ -83,7 +77,7 @@ flutter analyze
 flutter test
 ```
 
-`test/environment_test.dart` covers environment persistence, switching, session isolation, request URLs, and stale login responses. `test/widget_test.dart` covers session restoration, protected navigation, logout, and storage failures.
+`test/widget_test.dart` is the generated counter test. Its expectations do not match the current login screen, and it does not cover authentication or sessions.
 
 ## Development Status
 
@@ -91,6 +85,7 @@ Authentication screens and session handling are implemented in the source. The d
 
 ## Known Limitations
 
-- The environment URLs use plain HTTP; production use requires a secure HTTPS endpoint.
+- The dashboard route does not check whether a session exists.
+- The API address is hard-coded and uses plain HTTP; deployment requires an appropriate address and transport configuration.
 - Android release builds currently use debug signing and require proper release signing before distribution.
-- Tests do not replace end-to-end backend testing.
+- The existing widget test is stale; authentication and session flows lack test coverage.

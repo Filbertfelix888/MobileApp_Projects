@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../environment_config.dart';
 import '../session_manager.dart';
 import '../ui/Theme/theme_tonggle.dart'; // Import komponen ThemeToggle
 
@@ -23,18 +22,11 @@ class _NavbarState extends State<Navbar> {
   }
 
   Future<void> _loadUserData() async {
-    try {
-      final environment = await EnvironmentConfig.snapshot();
-      final session = await SessionManager.getSessionForEnvironment(
-        environment.environment,
-      );
-      if (mounted && session != null && session['user'] != null) {
-        setState(() {
-          _userName = session['user']['name'] ?? 'User';
-        });
-      }
-    } catch (_) {
-      // Keep the default user label when persisted session state is unavailable.
+    final session = await SessionManager.getSession();
+    if (session != null && session['user'] != null) {
+      setState(() {
+        _userName = session['user']['name'] ?? 'User';
+      });
     }
   }
 
@@ -94,27 +86,9 @@ class _NavbarState extends State<Navbar> {
                     icon: const Icon(Icons.account_circle, size: 28, color: Colors.grey),
                     onSelected: (value) async {
                       if (value == 'logout') {
-                        final messenger = ScaffoldMessenger.of(context);
-                        String? failure;
-                        try {
-                          await EnvironmentConfig.logout();
-                        } catch (error) {
-                          failure = error.toString().replaceAll('Exception: ', '');
-                        }
+                        await SessionManager.clearSession();
                         if (context.mounted) {
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/login',
-                            (_) => false,
-                          );
-                        }
-                        if (failure != null) {
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(failure),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                          Navigator.pushReplacementNamed(context, '/login');
                         }
                       }
                     },

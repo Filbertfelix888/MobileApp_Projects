@@ -2,17 +2,13 @@ import 'package:flutter/material.dart';
 import 'System Login/login_page.dart';
 import 'System Login/register_page.dart';
 import 'Home/home_page.dart';
-import 'environment_config.dart';
-import 'session_manager.dart';
-import 'ui/Theme/theme_notifier.dart';
+import '../ui/Theme/theme_notifier.dart';
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, this.homePage = const HomePage()});
-
-  final Widget homePage;
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -42,60 +38,13 @@ class MyApp extends StatelessWidget {
             dividerColor: const Color(0xFF2C2C2C),
           ),
 
-          initialRoute: '/',
+          initialRoute: '/login',
           routes: {
             '/login': (context) => const LoginPage(),
             '/signup': (context) => const RegisterPage(),
-            '/': (context) => _ProtectedHomeRoute(homePage: homePage),
+            '/': (context) => const HomePage(),
           },
         );
-      },
-    );
-  }
-}
-
-class _ProtectedHomeRoute extends StatefulWidget {
-  const _ProtectedHomeRoute({required this.homePage});
-
-  final Widget homePage;
-
-  @override
-  State<_ProtectedHomeRoute> createState() => _ProtectedHomeRouteState();
-}
-
-class _ProtectedHomeRouteState extends State<_ProtectedHomeRoute> {
-  late final Future<Map<String, dynamic>?> _session = _loadSession();
-
-  Future<Map<String, dynamic>?> _loadSession() async {
-    try {
-      final environment = await EnvironmentConfig.snapshot();
-      final session = await SessionManager.getSessionForEnvironment(
-        environment.environment,
-      );
-      final token = session?['access_token'];
-      return token is String && token.isNotEmpty ? session : null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: _session,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final token = snapshot.data?['access_token'];
-        return snapshot.connectionState == ConnectionState.done &&
-                !snapshot.hasError &&
-                token is String &&
-                token.isNotEmpty
-            ? widget.homePage
-            : const LoginPage();
       },
     );
   }
