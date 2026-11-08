@@ -164,11 +164,14 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> {
   }
 
   DateTime? _utcCalendarDate(String? value) {
-    if (value == null) return null;
-    final parsed = DateTime.tryParse(value);
-    if (parsed == null) return null;
-    final utc = parsed.toUtc();
-    return DateTime.utc(utc.year, utc.month, utc.day);
+    if (value == null ||
+        value.length < 10 ||
+        DateTime.tryParse(value) == null) {
+      return null;
+    }
+    final date = DateTime.tryParse(value.substring(0, 10));
+    if (date == null) return null;
+    return DateTime.utc(date.year, date.month, date.day);
   }
 
   String _dateLabel(DateTime date) =>

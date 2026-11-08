@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:my_mobile_app/Home/home_page.dart';
 import 'package:my_mobile_app/System Login/login_page.dart';
+import 'package:my_mobile_app/Project/project_detail_page.dart';
 import 'package:my_mobile_app/environment_config.dart';
 import 'package:my_mobile_app/main.dart';
 import 'package:my_mobile_app/network.dart';
@@ -22,6 +23,8 @@ http.Response _list(
   String desc = 'First',
   int totalPages = 1,
   bool empty = false,
+  String createdAt = '2026-11-01T08:00:00Z',
+  String? dueDate,
 }) {
   return http.Response(
     jsonEncode({
@@ -34,7 +37,8 @@ http.Response _list(
                 'public_id': _id,
                 'title': title,
                 'description': desc,
-                'created_at': '2026-11-01T08:00:00Z',
+                'created_at': createdAt,
+                'due_date': dueDate,
               },
             ],
       'meta': {'page': 1, 'limit': 10, 'total': 1, 'total_pages': totalPages},
@@ -125,6 +129,166 @@ void main() {
     expect(find.byType(Dialog), findsNothing);
     expect(requests.where((request) => request.method == 'GET').length, 2);
   });
+  testWidgets('selected deadline survives create, refresh, and reopen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final now = DateTime.now();
+    final selectedDeadline = DateTime(now.year + 1, 1, 30);
+    final expectedDeadline = selectedDeadline
+        .toIso8601String()
+        .split('T')
+        .first;
+    final monthsToAdvance =
+        (selectedDeadline.year - now.year) * 12 +
+        selectedDeadline.month -
+        now.month;
+    final createdAt = DateTime(
+      now.year,
+      now.month,
+      1,
+      8,
+    ).toUtc().toIso8601String();
+    String? persistedDueDate;
+
+    Network.client = MockClient((request) async {
+      requests.add(request);
+      if (request.method == 'POST' && request.url.path == '/api/v1/boards') {
+        final payload = jsonDecode(request.body) as Map<String, dynamic>;
+        persistedDueDate = payload['due_date'] as String?;
+        return http.Response(
+          jsonEncode({
+            'message': 'Board Created Successfully',
+            'data': {
+              'public_id': _id,
+              'title': 'Deadline probe',
+              'description': 'Date persistence test',
+              'created_at': createdAt,
+              'due_date': persistedDueDate,
+            },
+          }),
+          200,
+        );
+      }
+      if (request.method == 'GET' && request.url.path == '/api/v1/boards/my') {
+        return _list(
+          'Deadline probe',
+          createdAt: createdAt,
+          dueDate: persistedDueDate,
+          empty: persistedDueDate == null,
+        );
+      }
+      if (request.method == 'GET' &&
+          request.url.path == '/api/v1/boards/$_id') {
+        return http.Response(
+          jsonEncode({
+            'status': 'Success',
+            'response_code': 200,
+            'data': {
+              'public_id': _id,
+              'title': 'Deadline probe',
+              'description': 'Date persistence test',
+              'created_at': createdAt,
+              'due_date': persistedDueDate,
+            },
+          }),
+          200,
+        );
+      }
+      if (request.url.path.endsWith('/lists')) {
+        return http.Response('{"data":{"Lists":[]}}', 200);
+      }
+      if (request.url.path.endsWith('/members') ||
+          request.url.path.endsWith('/cards')) {
+        return http.Response('{"data":[]}', 200);
+      }
+      return http.Response('{"message":"Unexpected request"}', 404);
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: const HomePage(),
+        onGenerateRoute: (settings) {
+          if (settings.name == '/projects/$_id') {
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => const ProjectDetailPage(boardId: _id),
+            );
+          }
+          return null;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Buat proyek baru'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'Deadline probe');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'Date persistence test',
+    );
+    await tester.tap(find.byType(TextFormField).at(2));
+    await tester.pumpAndSettle();
+    for (var month = 0; month < monthsToAdvance; month++) {
+      await tester.tap(find.byTooltip('Next month'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('30').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).at(2))
+          .controller!
+          .text,
+      expectedDeadline,
+    );
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+
+    final post = requests.singleWhere(
+      (request) =>
+          request.method == 'POST' && request.url.path == '/api/v1/boards',
+    );
+    expect(
+      DateTime.parse(persistedDueDate!)
+          .toLocal()
+          .toIso8601String()
+          .substring(0, 10),
+      expectedDeadline,
+    );
+    final localCreatedDate = DateTime.parse(createdAt)
+        .toLocal()
+        .toIso8601String()
+        .split('T')
+        .first;
+    expect(find.text('Dibuat $localCreatedDate'), findsOneWidget);
+    expect(find.text('Tenggat $expectedDeadline'), findsOneWidget);
+
+    await tester.tap(find.text('Detail proyek'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Detail proyek'));
+    await tester.pumpAndSettle();
+    expect(find.text(expectedDeadline), findsOneWidget);
+    await tester.tap(find.text('Kembali'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Detail proyek'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Detail proyek'));
+    await tester.pumpAndSettle();
+    expect(find.text(expectedDeadline), findsOneWidget);
+    expect(
+      requests.where(
+        (request) =>
+            request.method == 'GET' &&
+            request.url.path == '/api/v1/boards/$_id',
+      ),
+      hasLength(2),
+    );
+    expect(post.headers['authorization'], 'Bearer t');
+  });
 
   testWidgets('create error preserves input and allows retry', (tester) async {
     var attempts = 0;
@@ -192,8 +356,11 @@ void main() {
     expect(requests.where((request) => request.method == 'GET').length, 2);
   });
 
-  testWidgets('renders row from real envelope', (tester) async {
-    await pumpHome(tester, (_) async => _list('Alpha'));
+  testWidgets('renders created and deadline dates from real envelope', (
+    tester,
+  ) async {
+    const dueAt = '2026-11-30T00:00:00Z';
+    await pumpHome(tester, (_) async => _list('Alpha', dueDate: dueAt));
     expect(find.text('Alpha'), findsOneWidget);
     expect(find.text('First'), findsOneWidget);
     final createdDate = DateTime.parse('2026-11-01T08:00:00Z')
@@ -201,7 +368,13 @@ void main() {
         .toIso8601String()
         .split('T')
         .first;
+    final dueDate = DateTime.parse(dueAt)
+        .toLocal()
+        .toIso8601String()
+        .split('T')
+        .first;
     expect(find.text(createdDate), findsOneWidget);
+    expect(find.text(dueDate), findsOneWidget);
     expect(requests.single.url.toString(), '$_base/my?filter&limit=10&page=1');
   });
   testWidgets('mobile project list exposes detail and safe delete controls', (
@@ -211,7 +384,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     Network.client = MockClient((request) async {
       requests.add(request);
-      return _list('Alpha');
+      return _list('Alpha', dueDate: '2026-11-30T00:00:00Z');
     });
     await tester.pumpWidget(
       MaterialApp(
@@ -226,6 +399,12 @@ void main() {
 
     expect(find.byType(DataTable), findsNothing);
     expect(find.text('First'), findsOneWidget);
+    final dueDate = DateTime.parse('2026-11-30T00:00:00Z')
+        .toLocal()
+        .toIso8601String()
+        .split('T')
+        .first;
+    expect(find.text('Tenggat $dueDate'), findsOneWidget);
     expect(
       find.widgetWithText(OutlinedButton, 'Detail proyek'),
       findsOneWidget,

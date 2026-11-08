@@ -294,16 +294,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  String _projectCreatedDate(dynamic data) {
-    final value = data['created_at']?.toString() ?? '';
-    return value.isEmpty
-        ? '-'
-        : DateTime.tryParse(value)
-                  ?.toLocal()
-                  .toIso8601String()
-                  .split('T')
-                  .first ??
-              value.split('T').first;
+  String _projectDate(Object? value) {
+    final text = value?.toString() ?? '';
+    if (text.isEmpty || text.startsWith('0001-01-01')) return '-';
+    return DateTime.tryParse(text)
+            ?.toLocal()
+            .toIso8601String()
+            .split('T')
+            .first ??
+        text.split('T').first;
   }
 
   Widget _mobileProjectRow(BuildContext context, dynamic data) {
@@ -328,7 +327,13 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Dibuat ${_projectCreatedDate(data)}',
+            'Dibuat ${_projectDate(data['created_at'])}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            'Tenggat ${_projectDate(data['due_date'])}',
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -515,6 +520,12 @@ class _HomePageState extends State<HomePage> {
                                 ),
                                 DataColumn(
                                   label: Text(
+                                    'Tenggat',
+                                    style: theme.textTheme.titleSmall,
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
                                     'Aksi',
                                     style: theme.textTheme.titleSmall,
                                   ),
@@ -530,7 +541,12 @@ class _HomePageState extends State<HomePage> {
                                   cells: [
                                     DataCell(Text(title)),
                                     DataCell(Text(description)),
-                                    DataCell(Text(_projectCreatedDate(data))),
+                                    DataCell(
+                                      Text(_projectDate(data['created_at'])),
+                                    ),
+                                    DataCell(
+                                      Text(_projectDate(data['due_date'])),
+                                    ),
                                     DataCell(
                                       Row(
                                         mainAxisSize: MainAxisSize.min,

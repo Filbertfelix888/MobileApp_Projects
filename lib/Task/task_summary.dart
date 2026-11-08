@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'task_models.dart';
@@ -238,49 +240,27 @@ class TaskSummaryView extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Text('Tugas per kolom', style: theme.textTheme.titleMedium),
-        for (final item in summary.columns)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${item.column.displayTitle}: ${item.count} (${item.percentage}%)',
-                ),
-                const SizedBox(height: 4),
-                LinearProgressIndicator(value: item.percentage / 100),
-              ],
-            ),
-          ),
+        const SizedBox(height: 12),
+        _TaskDistributionChart(
+          columns: summary.columns,
+          totalTasks: summary.totalTasks,
+        ),
         const SizedBox(height: 16),
         Text('Beban tugas', style: theme.textTheme.titleMedium),
-        if (summary.workloads.isEmpty && summary.unassignedCount == 0)
-          const Text('Belum ada tugas yang ditugaskan.'),
-        for (final row in summary.workloads)
-          ListTile(
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            contentPadding: EdgeInsets.zero,
-            title: Text(row.name),
-            subtitle: Text(row.email),
-            trailing: Text('${row.taskCount}'),
-          ),
-        if (summary.unassignedCount > 0)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            title: const Text('Belum ditugaskan'),
-            trailing: Text('${summary.unassignedCount}'),
-          ),
+        const SizedBox(height: 12),
+        _WorkloadChart(summary: summary),
         const SizedBox(height: 16),
         _taskSection(
           context,
-          'Terlambat atau jatuh tempo hari ini',
+          'Terlambat atau jatuh tempo hari ini (${summary.overdueOrToday.length})',
           summary.overdueOrToday,
         ),
         const SizedBox(height: 12),
-        _taskSection(context, 'Jatuh tempo 1–3 hari lagi', summary.dueSoon),
+        _taskSection(
+          context,
+          'Jatuh tempo 1–3 hari lagi (${summary.dueSoon.length})',
+          summary.dueSoon,
+        ),
       ],
     );
   }
@@ -313,3 +293,295 @@ class TaskSummaryView extends StatelessWidget {
 
 String _formatDay(DateTime day) =>
     '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+
+class _TaskDistributionChart extends StatelessWidget {
+  const _TaskDistributionChart({
+    required this.columns,
+    required this.totalTasks,
+  });
+
+  final List<TaskColumnSummary> columns;
+  final int totalTasks;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = List.generate(
+      columns.length,
+      (index) =>
+          _categoryColor(theme.colorScheme.primary, theme.brightness, index),
+    );
+    final chartLabel = columns
+        .map(
+          (item) =>
+              '${item.column.displayTitle}: ${item.count} tugas, ${item.percentage}%',
+        )
+        .join('. ');
+
+    return Column(
+      children: [
+        Semantics(
+          container: true,
+          label: columns.isEmpty
+              ? 'Sebaran tugas per kolom. Belum ada kolom.'
+              : 'Sebaran tugas per kolom. Total $totalTasks tugas. $chartLabel',
+          child: ExcludeSemantics(
+            child: SizedBox(
+              width: 184,
+              height: 184,
+              child: CustomPaint(
+                painter: _TaskDistributionPainter(
+                  counts: columns.map((item) => item.count).toList(),
+                  colors: colors,
+                  totalTasks: totalTasks,
+                  trackColor: theme.colorScheme.surfaceContainerHigh,
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('$totalTasks', style: theme.textTheme.titleLarge),
+                      Text('tugas', style: theme.textTheme.labelSmall),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (columns.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Belum ada kolom tugas.',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+        for (var i = 0; i < columns.length; i++)
+          Semantics(
+            container: true,
+            label:
+                '${columns[i].column.displayTitle}: ${columns[i].count} tugas, ${columns[i].percentage}%',
+            child: ExcludeSemantics(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    SizedBox.square(
+                      dimension: 12,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: colors[i],
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        columns[i].column.displayTitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${columns[i].count} (${columns[i].percentage}%)',
+                      textAlign: TextAlign.end,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _WorkloadChart extends StatelessWidget {
+  const _WorkloadChart({required this.summary});
+
+  final TaskSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = [
+      for (final row in summary.workloads)
+        _WorkloadEntry(
+          name: row.name,
+          email: row.email,
+          taskCount: row.taskCount,
+        ),
+      if (summary.unassignedCount > 0)
+        _WorkloadEntry(
+          name: 'Belum ditugaskan',
+          taskCount: summary.unassignedCount,
+        ),
+    ];
+    if (rows.isEmpty) {
+      return const Text('Belum ada tugas yang ditugaskan.');
+    }
+
+    var maxCount = 0;
+    for (final row in rows) {
+      if (row.taskCount > maxCount) maxCount = row.taskCount;
+    }
+
+    return Column(
+      children: [
+        for (final row in rows) _WorkloadBar(row: row, maxCount: maxCount),
+      ],
+    );
+  }
+}
+
+class _WorkloadEntry {
+  const _WorkloadEntry({
+    required this.name,
+    this.email,
+    required this.taskCount,
+  });
+
+  final String name;
+  final String? email;
+  final int taskCount;
+}
+
+class _WorkloadBar extends StatelessWidget {
+  const _WorkloadBar({required this.row, required this.maxCount});
+
+  final _WorkloadEntry row;
+  final int maxCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final email = row.email;
+    return Semantics(
+      container: true,
+      label:
+          '${row.name}${email == null || email.isEmpty ? '' : ', $email'}: ${row.taskCount} tugas',
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          row.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (email != null && email.isNotEmpty)
+                          Text(
+                            email,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text('${row.taskCount}'),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: row.taskCount / maxCount,
+                  minHeight: 8,
+                  color: theme.colorScheme.primary,
+                  backgroundColor: theme.colorScheme.surfaceContainerHigh,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskDistributionPainter extends CustomPainter {
+  const _TaskDistributionPainter({
+    required this.counts,
+    required this.colors,
+    required this.totalTasks,
+    required this.trackColor,
+  });
+
+  final List<int> counts;
+  final List<Color> colors;
+  final int totalTasks;
+  final Color trackColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const strokeWidth = 24.0;
+    final radius = math
+        .max(0.0, math.min(size.width, size.height) / 2 - strokeWidth / 2)
+        .toDouble();
+    if (radius == 0) return;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final track = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawCircle(center, radius, track);
+    if (totalTasks <= 0) return;
+
+    var startAngle = -math.pi / 2;
+    for (var i = 0; i < counts.length; i++) {
+      final sweep = math.pi * 2 * counts[i] / totalTasks;
+      final gap = counts[i] > 0 && counts[i] < totalTasks && sweep > 0.04
+          ? 0.04
+          : 0.0;
+      final segment = Paint()
+        ..color = colors[i]
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth;
+      canvas.drawArc(rect, startAngle + gap / 2, sweep - gap, false, segment);
+      startAngle += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TaskDistributionPainter oldDelegate) {
+    if (totalTasks != oldDelegate.totalTasks ||
+        trackColor != oldDelegate.trackColor ||
+        counts.length != oldDelegate.counts.length ||
+        colors.length != oldDelegate.colors.length) {
+      return true;
+    }
+    for (var i = 0; i < counts.length; i++) {
+      if (counts[i] != oldDelegate.counts[i] ||
+          colors[i] != oldDelegate.colors[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+Color _categoryColor(Color seed, Brightness brightness, int index) {
+  if (index == 0) return seed;
+  final base = HSLColor.fromColor(seed);
+  return base
+      .withHue((base.hue + index * 137.5) % 360)
+      .withSaturation(0.52)
+      .withLightness(brightness == Brightness.dark ? 0.68 : 0.48)
+      .toColor();
+}

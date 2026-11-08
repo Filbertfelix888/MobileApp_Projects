@@ -13,6 +13,7 @@ import 'package:my_mobile_app/Task/task_summary.dart';
 import 'package:my_mobile_app/environment_config.dart';
 import 'package:my_mobile_app/network.dart';
 import 'package:my_mobile_app/session_manager.dart';
+import 'package:my_mobile_app/ui/Theme/app_theme.dart';
 
 const _board = '11111111-1111-1111-1111-111111111111';
 const _a = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -141,9 +142,232 @@ void main() {
       );
 
       expect(find.text('Belum ditugaskan'), findsOneWidget);
-      expect(find.text('2'), findsOneWidget);
+      expect(find.text('2'), findsNWidgets(2));
       expect(find.textContaining('Instance of'), findsNothing);
+      await tester.scrollUntilVisible(
+        find.text('Terlambat atau jatuh tempo hari ini (0)'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        find.text('Terlambat atau jatuh tempo hari ini (0)'),
+        findsOneWidget,
+      );
+      await tester.scrollUntilVisible(
+        find.text('Jatuh tempo 1–3 hari lagi (0)'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Jatuh tempo 1–3 hari lagi (0)'), findsOneWidget);
     });
+    testWidgets('renders overdue and due-soon counts with task links', (
+      tester,
+    ) async {
+      final column = _column('first', 1, 'Backlog');
+      final summary = computeTaskSummary(
+        columns: [column],
+        tasksByColumn: {
+          'first': [
+            _card(
+              'overdue',
+              1,
+              title: 'Overdue task',
+              dueDate: '2026-11-09T00:00:00Z',
+            ),
+            _card(
+              'today',
+              1,
+              title: 'Today task',
+              dueDate: '2026-11-10T00:00:00Z',
+            ),
+            _card(
+              'soon-1',
+              1,
+              title: 'Due soon one',
+              dueDate: '2026-11-11T00:00:00Z',
+            ),
+            _card(
+              'soon-3',
+              1,
+              title: 'Due soon three',
+              dueDate: '2026-11-13T00:00:00Z',
+            ),
+            _card(
+              'later',
+              1,
+              title: 'Later task',
+              dueDate: '2026-11-14T00:00:00Z',
+            ),
+          ],
+        },
+        today: DateTime(2026, 11, 10),
+      );
+      TaskSummaryTaskEntry? opened;
+
+      for (final theme in [AppTheme.light, AppTheme.dark]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: theme,
+            home: Scaffold(
+              body: TaskSummaryView(
+                summary: summary,
+                complete: true,
+                onTaskOpen: (entry) => opened = entry,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Terlambat atau jatuh tempo hari ini (2)'),
+          findsOneWidget,
+        );
+        await tester.scrollUntilVisible(
+          find.text('Jatuh tempo 1–3 hari lagi (2)'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text('Jatuh tempo 1–3 hari lagi (2)'), findsOneWidget);
+      }
+      await tester.scrollUntilVisible(
+        find.text('Due soon one'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Due soon one'));
+      expect(opened?.task.title, 'Due soon one');
+    });
+    testWidgets(
+      'renders empty, single, and multi-category charts across themes and widths',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
+        final semantics = tester.ensureSemantics();
+
+        final empty = computeTaskSummary(
+          columns: [
+            _column('empty-backlog', 1, 'Backlog'),
+            _column('empty-doing', 2, 'Doing'),
+          ],
+          tasksByColumn: const {},
+          today: DateTime(2026, 11, 10),
+        );
+        final single = computeTaskSummary(
+          columns: [_column('ready', 1, 'Ready')],
+          tasksByColumn: {
+            'ready': [
+              _card('single', 1, assignees: [_assignee(_a, 'Ada')]),
+            ],
+          },
+          today: DateTime(2026, 11, 10),
+        );
+
+        final oneSlice = computeTaskSummary(
+          columns: [
+            _column('backlog', 1, 'Backlog'),
+            _column('doing', 2, 'Doing'),
+          ],
+          tasksByColumn: {
+            'backlog': [
+              _card('only-slice', 1, assignees: [_assignee(_a, 'Ada')]),
+            ],
+          },
+          today: DateTime(2026, 11, 10),
+        );
+        final multiple = computeTaskSummary(
+          columns: [
+            _column('backlog', 1, 'Backlog'),
+            _column('doing', 2, 'Doing'),
+            _column('done', 3, 'Done'),
+          ],
+          tasksByColumn: {
+            'backlog': [
+              _card('first', 1, assignees: [_assignee(_a, 'Sam')]),
+              _card('second', 1, assignees: [_assignee(_a, 'Sam')]),
+            ],
+            'doing': [
+              _card('third', 2, assignees: [_assignee(_b, 'Bea')]),
+              _card('fourth', 2),
+            ],
+            'done': const <TaskCard>[],
+          },
+          today: DateTime(2026, 11, 10),
+        );
+        final cases = [
+          (
+            summary: empty,
+            labels: [
+              'Backlog',
+              'Doing',
+              '0 (0%)',
+              'Belum ada tugas yang ditugaskan.',
+            ],
+          ),
+          (summary: single, labels: ['Ready', '1 (100%)', 'Ada']),
+          (summary: oneSlice, labels: ['Backlog', 'Doing', '1 (100%)', 'Ada']),
+          (
+            summary: multiple,
+            labels: [
+              'Backlog',
+              'Doing',
+              'Done',
+              '2 (50%)',
+              '0 (0%)',
+              'Sam',
+              'Bea',
+              'Belum ditugaskan',
+            ],
+          ),
+        ];
+
+        for (final theme in [AppTheme.light, AppTheme.dark]) {
+          for (final size in [const Size(320, 800), const Size(600, 960)]) {
+            tester.view.physicalSize = size;
+            for (final item in cases) {
+              await tester.pumpWidget(
+                MaterialApp(
+                  theme: theme,
+                  builder: (context, child) => MediaQuery(
+                    data: MediaQuery.of(context)
+                        .copyWith(textScaler: const TextScaler.linear(2)),
+                    child: child!,
+                  ),
+                  home: Scaffold(
+                    key: UniqueKey(),
+                    body: TaskSummaryView(
+                      summary: item.summary,
+                      complete: true,
+                      onTaskOpen: (_) {},
+                    ),
+                  ),
+                ),
+              );
+              await tester.pumpAndSettle();
+
+              expect(
+                find.bySemanticsLabel(RegExp('Sebaran tugas per kolom')),
+                findsOneWidget,
+              );
+              expect(tester.takeException(), isNull);
+              for (final label in item.labels) {
+                final finder = find.text(label);
+                if (finder.evaluate().isEmpty) {
+                  await tester.scrollUntilVisible(
+                    finder,
+                    200,
+                    scrollable: find.byType(Scrollable).first,
+                  );
+                }
+                expect(finder, findsWidgets);
+              }
+              expect(tester.takeException(), isNull);
+            }
+          }
+        }
+        semantics.dispose();
+      },
+    );
 
     test('uses inclusive one-to-three day due-soon window only', () {
       final column = _column('first', 1, 'Any');

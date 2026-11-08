@@ -647,6 +647,117 @@ void main() {
       expect(find.text('Task A'), findsNothing);
     },
   );
+  testWidgets('keeps date-only task deadline on its calendar day', (
+    tester,
+  ) async {
+    cardsByColumn[_second] = [
+      {..._card(listInternalId: 2), 'due_date': '2026-11-30'},
+    ];
+    await pumpBoard(tester);
+    await tester.tap(find.text('Task A'));
+    await tester.pumpAndSettle();
+    expect(find.text('2026-11-30'), findsOneWidget);
+    expect(find.text('Simpan perubahan'), findsNothing);
+  });
+  testWidgets('keeps offset task deadline on its calendar day', (tester) async {
+    cardsByColumn[_second] = [
+      {..._card(listInternalId: 2), 'due_date': '2026-11-30T00:00:00+07:00'},
+    ];
+    await pumpBoard(tester);
+    await tester.tap(find.text('Task A'));
+    await tester.pumpAndSettle();
+    expect(find.text('2026-11-30'), findsOneWidget);
+    expect(find.text('Simpan perubahan'), findsNothing);
+  });
+  testWidgets('due-date-only edit saves and persists after reopen', (
+    tester,
+  ) async {
+    cardsByColumn[_second] = [
+      {..._card(listInternalId: 2), 'due_date': '2026-11-30T00:00:00+07:00'},
+    ];
+    await pumpBoard(tester);
+    await tester.tap(find.text('Task A'));
+    await tester.pumpAndSettle();
+    expect(find.text('2026-11-30'), findsOneWidget);
+    expect(find.text('Simpan perubahan'), findsNothing);
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDeadline = DateTime(now.year + 1, 1, 30);
+    final expectedDeadline = selectedDeadline
+        .toIso8601String()
+        .split('T')
+        .first;
+    final existingDeadline = DateTime(2026, 11, 30);
+    final pickerStart = existingDeadline.isBefore(today)
+        ? today
+        : existingDeadline;
+    final monthsToAdvance =
+        (selectedDeadline.year - pickerStart.year) * 12 +
+        selectedDeadline.month -
+        pickerStart.month;
+    await tester.tap(find.text('Pilih tanggal'));
+    await tester.pumpAndSettle();
+    for (var month = 0; month < monthsToAdvance; month++) {
+      await tester.tap(find.byTooltip('Next month'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('30').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(expectedDeadline), findsOneWidget);
+    final save = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Simpan perubahan'),
+    );
+    expect(save.onPressed, isNotNull);
+    await tester.tap(find.text('Simpan perubahan'));
+    await tester.pumpAndSettle();
+
+    final firstUpdate = requests.singleWhere(
+      (request) =>
+          request.method == 'PUT' &&
+          request.url.path == '/api/v1/cards/$_taskId',
+    );
+    final firstPayload = jsonDecode(firstUpdate.body) as Map<String, dynamic>;
+    expect(firstPayload['due_date'], '${expectedDeadline}T00:00:00Z');
+    expect(firstPayload['title'], 'Task A');
+    expect(firstPayload['description'], 'Saved description');
+    expect(find.text('Simpan perubahan'), findsNothing);
+    await tester.tap(find.byTooltip('Tutup detail tugas'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Task A'));
+    await tester.pumpAndSettle();
+    expect(find.text(expectedDeadline), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Hapus tenggat'));
+    await tester.tap(find.text('Hapus tenggat'));
+    await tester.pump();
+    expect(find.text('Tidak ada tenggat'), findsOneWidget);
+    expect(find.text('Simpan perubahan'), findsOneWidget);
+    await tester.tap(find.text('Simpan perubahan'));
+    await tester.pumpAndSettle();
+    final updates = requests
+        .where(
+          (request) =>
+              request.method == 'PUT' &&
+              request.url.path == '/api/v1/cards/$_taskId',
+        )
+        .toList();
+    expect(updates, hasLength(2));
+    expect(
+      (jsonDecode(updates.last.body) as Map<String, dynamic>)['due_date'],
+      isNull,
+    );
+    await tester.tap(find.byTooltip('Tutup detail tugas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Task A'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tidak ada tenggat'), findsOneWidget);
+    expect(find.text('Simpan perubahan'), findsNothing);
+  });
   testWidgets(
     'failed move keeps task in source and sends no optimistic update',
     (tester) async {
@@ -916,6 +1027,11 @@ void main() {
     expect(find.textContaining('belum lengkap'), findsOneWidget);
     expect(find.text('Kolom gagal'), findsOneWidget);
     expect(find.text('Coba lagi'), findsOneWidget);
+    expect(
+      find.textContaining('Terlambat atau jatuh tempo hari ini ('),
+      findsNothing,
+    );
+    expect(find.textContaining('Jatuh tempo 1–3 hari lagi ('), findsNothing);
   });
   testWidgets('narrow 360px large-text header does not overflow', (
     tester,
