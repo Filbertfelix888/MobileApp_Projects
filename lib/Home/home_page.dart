@@ -45,8 +45,16 @@ class _HomePageState extends State<HomePage> {
 
       if (mounted) {
         setState(() {
-          _boardsData = response['data']['data'] ?? [];
-          _totalPages = response['data']['meta']?['total_pages'] ?? 1;
+          // Pengecekan fleksibel untuk struktur data dari Backend Golang
+          if (response['data'] is List) {
+            _boardsData = response['data'];
+          } else if (response['data'] != null && response['data']['data'] is List) {
+            _boardsData = response['data']['data'];
+          } else {
+            _boardsData = [];
+          }
+
+          _totalPages = response['data']?['meta']?['total_pages'] ?? 1;
         });
       }
     } catch (error) {
