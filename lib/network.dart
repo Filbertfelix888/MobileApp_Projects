@@ -99,8 +99,23 @@ class BoardService {
     return Network.delete('/v1/boards/$boardId');
   }
 
+  static Future<dynamic> getBoardDetail(String boardId) async {
+    return Network.get('/v1/boards/$boardId');
+  }
+
+  // GET /v1/boards/:id/lists
+  static Future<dynamic> getBoardLists(String boardId) async {
+    return Network.get('/v1/boards/$boardId/lists');
+  }
+
   // POST /v1/boards
   static Future<dynamic> createBoard(Map<String, dynamic> payload) async {
     return Network.post('/v1/boards', payload);
+  }
+}
+class ListService {
+  // POST /v1/lists
+  static Future<dynamic> createList(Map<String, dynamic> payload) async {
+    return Network.post('/v1/lists', payload);
   }
 }
