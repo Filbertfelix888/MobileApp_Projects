@@ -7,7 +7,7 @@ class Network {
   // - Android Emulator: http://10.0.2.2:3030
   // - iOS Simulator / Web / Windows: http://127.0.0.1:3030
   // - HP Fisik: http://192.168.x.x:3030 (IP Laptop Anda)
-  static const String baseUrl = 'http://10.0.2.2:3030';
+  static const String baseUrl = 'http://43.173.10.180:3030';
 
   // Helper private untuk mengambil header standar + Authorization Token
   static Future<Map<String, String>> _getHeaders() async {
