@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+
 import 'session_manager.dart';
 
 class Network {
@@ -22,7 +24,7 @@ class Network {
     return headers;
   }
 
-// --- 1. METHOD GET ---
+  // --- 1. METHOD GET ---
   static Future<dynamic> get(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _getHeaders();
@@ -33,52 +35,87 @@ class Network {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return responseData;
     } else {
-      throw Exception(responseData['message'] ?? 'Gagal mengambil data dari server');
+      throw Exception(
+        responseData['message'] ?? 'Gagal mengambil data dari server',
+      );
     }
   }
 
   // --- 2. METHOD POST ---
-static Future<dynamic> post(
-  String endpoint,
-  Map<String, dynamic> payload,
-) async {
-  final url = Uri.parse('$baseUrl$endpoint');
-  final headers = await _getHeaders();
+  static Future<dynamic> post(
+    String endpoint,
+    Map<String, dynamic> payload,
+  ) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    final headers = await _getHeaders();
 
-  final response = await http.post(
-    url,
-    headers: headers,
-    body: jsonEncode(payload),
-  );
-
-  print('URL: $url');
-  print('STATUS: ${response.statusCode}');
-  print('RESPONSE: ${response.body}');
-
-  dynamic responseData;
-
-  try {
-    responseData = jsonDecode(response.body);
-  } catch (e) {
-    throw Exception(
-      'Server Error (${response.statusCode}): ${response.body}',
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: jsonEncode(payload),
     );
+
+    print('URL: $url');
+    print('STATUS: ${response.statusCode}');
+    print('RESPONSE: ${response.body}');
+
+    dynamic responseData;
+
+    try {
+      responseData = jsonDecode(response.body);
+    } catch (e) {
+      throw Exception(
+        'Server Error (${response.statusCode}): ${response.body}',
+      );
+    }
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return responseData;
+    } else {
+      throw Exception(
+        responseData is Map
+            ? (responseData['message']?.toString() ?? 'Gagal menyimpan data')
+            : 'Gagal menyimpan data',
+      );
+    }
   }
 
-  if (response.statusCode >= 200 &&
-      response.statusCode < 300) {
-    return responseData;
-  } else {
-    throw Exception(
-      responseData is Map
-          ? (responseData['message']?.toString() ??
-              'Gagal menyimpan data')
-          : 'Gagal menyimpan data',
-    );
-  }
-}
+  // --- 3. METHOD PUT ---
+  static Future<dynamic> put(
+    String endpoint,
+    Map<String, dynamic> payload,
+  ) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    final headers = await _getHeaders();
 
-  // --- 3. METHOD DELETE ---
+    final response = await http.put(
+      url,
+      headers: headers,
+      body: jsonEncode(payload),
+    );
+
+    dynamic responseData;
+
+    try {
+      responseData = jsonDecode(response.body);
+    } catch (e) {
+      throw Exception(
+        'Server Error (${response.statusCode}): ${response.body}',
+      );
+    }
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return responseData;
+    } else {
+      throw Exception(
+        responseData is Map
+            ? (responseData['message']?.toString() ?? 'Gagal memperbarui data')
+            : 'Gagal memperbarui data',
+      );
+    }
+  }
+
+  // --- 4. METHOD DELETE ---
   static Future<dynamic> delete(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _getHeaders();
@@ -89,7 +126,9 @@ static Future<dynamic> post(
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return responseData;
     } else {
-      throw Exception(responseData['message'] ?? 'Gagal menghapus data dari server');
+      throw Exception(
+        responseData['message'] ?? 'Gagal menghapus data dari server',
+      );
     }
   }
 }
@@ -110,7 +149,11 @@ class AuthService {
 
 class BoardService {
   // GET /v1/boards/my-boards?filter=...&limit=10&page=1
-  static Future<dynamic> getMyBoards({String search = '', int page = 1, int limit = 10}) async {
+  static Future<dynamic> getMyBoards({
+    String search = '',
+    int page = 1,
+    int limit = 10,
+  }) async {
     final queryParams = '?filter=$search&limit=$limit&page=$page';
     return Network.get('/api/v1/boards/my$queryParams');
   }
@@ -134,9 +177,35 @@ class BoardService {
     return Network.post('/api/v1/boards', payload);
   }
 }
+
 class ListService {
   // POST /v1/lists
   static Future<dynamic> createList(Map<String, dynamic> payload) async {
     return Network.post('/api/v1/lists', payload);
+  }
+
+  // DELETE /v1/lists/:id
+  static Future<dynamic> deleteList(String listId) async {
+    return Network.delete('/api/v1/lists/$listId');
+  }
+
+  // GET /v1/lists/:id/cards
+  static Future<dynamic> getCards(String listId) async {
+    return Network.get('/api/v1/lists/$listId/cards');
+  }
+}
+
+class CardService {
+  // POST /v1/cards
+  static Future<dynamic> createCard(Map<String, dynamic> payload) async {
+    return Network.post('/api/v1/cards', payload);
+  }
+
+  // PUT /v1/cards/:id
+  static Future<dynamic> updateCard(
+    String cardId,
+    Map<String, dynamic> payload,
+  ) async {
+    return Network.put('/api/v1/cards/$cardId', payload);
   }
 }

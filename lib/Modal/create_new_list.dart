@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+
 import '../network.dart';
 
 class CreateNewList extends StatefulWidget {
   final String boardPublicId;
   final VoidCallback onSuccess;
+  final double width;
 
   const CreateNewList({
     super.key,
     required this.boardPublicId,
     required this.onSuccess,
+    this.width = 236,
   });
 
   @override
@@ -27,17 +30,15 @@ class _CreateNewListState extends State<CreateNewList> {
     setState(() => _isLoading = true);
 
     try {
-      final payload = {
+      await ListService.createList({
         'title': _titleController.text,
         'board_public_id': widget.boardPublicId,
-      };
-
-      await ListService.createList(payload);
+      });
 
       if (mounted) {
         _titleController.clear();
         setState(() => _showForm = false);
-        widget.onSuccess(); // Refresh daftar list board
+        widget.onSuccess();
       }
     } catch (error) {
       if (mounted) {
@@ -63,76 +64,135 @@ class _CreateNewListState extends State<CreateNewList> {
 
   @override
   Widget build(BuildContext context) {
+    const primary = Color(0xFF1976D2);
+
     return SizedBox(
-      width: 260,
+      width: widget.width,
       child: _showForm
-          ? Card(
-              elevation: 2,
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: _titleController,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          hintText: 'Nama daftar tugas',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          isDense: true,
-                        ),
-                        validator: (val) =>
-                            (val == null || val.trim().isEmpty) ? 'Nama daftar tugas wajib diisi' : null,
+          ? Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    autofocus: true,
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: 'Nama daftar tugas',
+                      labelStyle: TextStyle(color: primary, fontSize: 13),
+                      border: const OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: primary),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          ElevatedButton(
-                            onPressed: _isLoading ? null : _onSubmit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1976D2),
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: primary, width: 1.5),
+                      ),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                    ),
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                        ? 'Nama daftar tugas wajib diisi'
+                        : null,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      SizedBox(
+                        height: 30,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _onSubmit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            minimumSize: const Size(0, 30),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : const Text('Simpan', style: TextStyle(color: Colors.white, fontSize: 12)),
                           ),
-                          const SizedBox(width: 4),
-                          OutlinedButton(
-                            onPressed: _isLoading ? null : () => setState(() => _showForm = false),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'SIMPAN',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 30,
+                        child: OutlinedButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () => setState(() => _showForm = false),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: primary,
+                            side: BorderSide(
+                              color: Theme.of(context).dividerColor,
                             ),
-                            child: const Text('Batal', style: TextStyle(fontSize: 12)),
+                            minimumSize: const Size(0, 30),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
-                        ],
+                          child: const Text(
+                            'BATAL',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             )
-          : ElevatedButton.icon(
-              onPressed: () => setState(() => _showForm = true),
-              icon: const Icon(Icons.add_sharp, size: 18, color: Colors.white),
-              label: const Text(
-                'BUAT DAFTAR TUGAS',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1976D2),
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          : SizedBox(
+              height: 40,
+              child: ElevatedButton.icon(
+                onPressed: () => setState(() => _showForm = true),
+                icon: const Icon(Icons.plus_one, size: 18),
+                label: const Text(
+                  'BUAT DAFTAR TUGAS',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1976D2),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
               ),
             ),
     );

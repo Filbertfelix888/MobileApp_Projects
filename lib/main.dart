@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+
 import 'System Login/login_page.dart';
 import 'System Login/register_page.dart';
 import 'Home/home_page.dart';
+import 'app_routes.dart';
 import '../ui/Theme/theme_notifier.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -19,7 +22,7 @@ class MyApp extends StatelessWidget {
           title: 'Mobile App',
           debugShowCheckedModeBanner: false,
           themeMode: currentMode,
-          
+
           // Tema Terang (Light Mode)
           theme: ThemeData(
             brightness: Brightness.light,
@@ -44,6 +47,7 @@ class MyApp extends StatelessWidget {
             '/signup': (context) => const RegisterPage(),
             '/': (context) => const HomePage(),
           },
+          onGenerateRoute: AppRoutes.onGenerateRoute,
         );
       },
     );
