@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_palette.dart';
+
 class AppStatusColors extends ThemeExtension<AppStatusColors> {
   const AppStatusColors({
     required this.successContainer,
@@ -133,35 +135,85 @@ class AppTheme {
     surfaceTint: Colors.transparent,
   );
 
-  static final ThemeData light = _build(
-    scheme: _lightScheme,
-    scaffold: const Color(0xFFF7F8FA),
-    card: const Color(0xFFFFFFFF),
-    divider: const Color(0xFFDDE2EA),
-    status: const AppStatusColors(
-      successContainer: Color(0xFFE6F4EA),
-      onSuccessContainer: Color(0xFF21683D),
-      warningContainer: Color(0xFFFFF0CC),
-      onWarningContainer: Color(0xFF785100),
-      infoContainer: Color(0xFFE3EAFF),
-      onInfoContainer: Color(0xFF345BC7),
-    ),
+  static const _lightStatus = AppStatusColors(
+    successContainer: Color(0xFFE6F4EA),
+    onSuccessContainer: Color(0xFF21683D),
+    warningContainer: Color(0xFFFFF0CC),
+    onWarningContainer: Color(0xFF785100),
+    infoContainer: Color(0xFFE3EAFF),
+    onInfoContainer: Color(0xFF345BC7),
   );
 
-  static final ThemeData dark = _build(
-    scheme: _darkScheme,
-    scaffold: const Color(0xFF181A1F),
-    card: const Color(0xFF202329),
-    divider: const Color(0xFF3C4451),
-    status: const AppStatusColors(
-      successContainer: Color(0xFF233D2F),
-      onSuccessContainer: Color(0xFF92D6AD),
-      warningContainer: Color(0xFF423821),
-      onWarningContainer: Color(0xFFF2CC78),
-      infoContainer: Color(0xFF2B3D62),
-      onInfoContainer: Color(0xFFADC6FF),
-    ),
+  static const _darkStatus = AppStatusColors(
+    successContainer: Color(0xFF233D2F),
+    onSuccessContainer: Color(0xFF92D6AD),
+    warningContainer: Color(0xFF423821),
+    onWarningContainer: Color(0xFFF2CC78),
+    infoContainer: Color(0xFF2B3D62),
+    onInfoContainer: Color(0xFFADC6FF),
   );
+
+  static final Map<AppPalette, ThemeData> _lightThemes = {};
+  static final Map<AppPalette, ThemeData> _darkThemes = {};
+
+  static ThemeData lightFor(AppPalette palette) {
+    return _lightThemes.putIfAbsent(palette, () {
+      final scheme = _schemeFor(palette, Brightness.light);
+      return _build(
+        scheme: scheme,
+        scaffold: const Color(0xFFF7F8FA),
+        card: const Color(0xFFFFFFFF),
+        divider: const Color(0xFFDDE2EA),
+        status: _statusFor(_lightStatus, scheme),
+      );
+    });
+  }
+
+  static ThemeData darkFor(AppPalette palette) {
+    return _darkThemes.putIfAbsent(palette, () {
+      final scheme = _schemeFor(palette, Brightness.dark);
+      return _build(
+        scheme: scheme,
+        scaffold: const Color(0xFF181A1F),
+        card: const Color(0xFF202329),
+        divider: const Color(0xFF3C4451),
+        status: _statusFor(_darkStatus, scheme),
+      );
+    });
+  }
+
+  /// Default themes kept for callers that do not need a palette choice.
+  static final ThemeData light = lightFor(AppPalette.ocean);
+  static final ThemeData dark = darkFor(AppPalette.ocean);
+
+  static ColorScheme _schemeFor(AppPalette palette, Brightness brightness) {
+    final base = brightness == Brightness.light ? _lightScheme : _darkScheme;
+    final accent = brightness == Brightness.light
+        ? palette.light
+        : palette.dark;
+    return base.copyWith(
+      primary: accent.primary,
+      onPrimary: accent.onPrimary,
+      primaryContainer: accent.primaryContainer,
+      onPrimaryContainer: accent.onPrimaryContainer,
+      secondary: accent.primary,
+      onSecondary: accent.onPrimary,
+      secondaryContainer: accent.primaryContainer,
+      onSecondaryContainer: accent.onPrimaryContainer,
+      tertiary: accent.primary,
+      onTertiary: accent.onPrimary,
+      tertiaryContainer: accent.primaryContainer,
+      onTertiaryContainer: accent.onPrimaryContainer,
+      inversePrimary: accent.inversePrimary,
+    );
+  }
+
+  static AppStatusColors _statusFor(AppStatusColors base, ColorScheme scheme) {
+    return base.copyWith(
+      infoContainer: scheme.primaryContainer,
+      onInfoContainer: scheme.onPrimaryContainer,
+    );
+  }
 
   static ThemeData _build({
     required ColorScheme scheme,

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Flutter app for authentication, projects, Kanban tasks, members, assignees, and workload analytics, with System/Light/Dark themes. QA is the only environment users can reach. The Go backend is external.
+Flutter app for authentication, projects, Kanban tasks, members, assignees, and workload analytics, with System/Light/Dark modes, curated accent palettes, and in-app brand symbols. QA is the only environment users can reach. The Go backend is external.
 
 ## Architecture & Data Flow
 
@@ -11,7 +11,7 @@ Flutter app for authentication, projects, Kanban tasks, members, assignees, and 
 - `EnvironmentConfig` always selects QA (`http://43.173.10.180:3030`) at startup, rewrites a stored DEV preference to QA, and discards sessions tagged for another environment. DEV (`http://10.0.2.2:3030`) and `select()` remain for tests; `LoginPage(showEnvironmentSelector: true)` shows the hidden selector. Switching clears the session; untagged legacy sessions are invalidated.
 - `HomePage` loads projects and exposes global workload analytics. `DashboardService` parses authenticated `GET /api/v1/dashboard/workload` as a raw array.
 - `ProjectDetailPage` hosts `KanbanBoard`; `TaskService` owns board columns, tasks, members, and assignees. The board summary derives from task details.
-- `ThemeNotifier` persists `APP_THEME_MODE` (`system`, `light`, or `dark`; default System, legacy `light`/`dark` preserved) independently of backend environment. `AppTheme` in `lib/ui/Theme/app_theme.dart` defines the Material 3 light and dark themes; `ThemeToggle` opens the chooser.
+- `ThemeNotifier` persists `APP_THEME_MODE` (`system`, `light`, or `dark`; default System, legacy `light`/`dark` preserved), `APP_THEME_PALETTE` (Ocean/Forest/Violet/Sunset/SoftPink/Graphite; default Ocean), and `APP_BRAND` (default logo or a built-in icon) independently of backend environment. `AppTheme` in `lib/ui/Theme/app_theme.dart` builds palette-aware Material 3 themes via `lightFor`/`darkFor`; `ThemeToggle` opens `AppearanceDialog` for mode, palette, and symbol choices.
 - `Network` sends authenticated GET/POST/PUT/DELETE requests to the selected backend. Responses must contain JSON, including errors. Configured endpoints use plain HTTP.
 - Backend limitations: global workload has no project/user filter and groups by assignee name; member `GET` returns raw user records including password hashes; board-level authorization and reorder routes are absent.
 
@@ -50,7 +50,7 @@ flutter build apk --debug --no-pub
 - `lib/session_manager.dart`: session storage and `access_token` validation.
 - `lib/Dashboard/dashboard_service.dart`: raw global workload endpoint parser.
 - `lib/Task/task_service.dart`: board/task/member/assignee API integration.
-- `lib/ui/Theme/theme_notifier.dart`: persisted System/Light/Dark preference; `lib/ui/Theme/app_theme.dart`: shared design tokens.
+- `lib/ui/Theme/theme_notifier.dart`: persisted mode, palette, and brand preferences; `lib/ui/Theme/app_theme.dart`: shared design tokens; `lib/ui/Theme/app_palette.dart`: palette and brand definitions.
 
 ## Runtime/Tooling Preferences
 

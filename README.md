@@ -16,7 +16,7 @@ More screenshots are in [docs/screenshots/](docs/screenshots/).
 - Members and assignees: paginated user search, add/remove board members, multi-select task assignment, and per-user unassignment.
 - Board summary (**Ringkasan**): task count per column, assignee workload, unassigned count, and overdue / due-soon lists.
 - Global analytics: assignment counts from `/api/v1/dashboard/workload` (aggregated by the backend, not per project or user).
-- Material 3 design system with **System**, **Light**, and **Dark** themes. The choice persists across restarts and is available from the login, registration, and app bars.
+- Material 3 design system with **System**, **Light**, and **Dark** modes plus six curated accent palettes (**Biru**, **Hijau**, **Ungu**, **Senja**, **Pink Lembut**, **Grafit**) and selectable in-app brand symbols. Choices persist across restarts and are available from the login, registration, and app bars.
 - Responsive layouts: a list layout on phones and a table on wide screens, full-screen dialogs on phones, and large-text support (checked at 2.0× font scale).
 
 ## Technology Stack
@@ -58,12 +58,13 @@ flutter build apk --debug --no-pub
 
 The debug APK is written to `build\app\outputs\flutter-apk\app-debug.apk`. Gradle prints a restricted `System.load` warning that does not affect the build.
 
-Last verified on 2026-11-08 (Windows, Flutter debug build, Android 15 emulator against the QA backend):
+Latest automated verification on 2026-11-24 (Linux):
 
 - `flutter analyze --no-pub`: no issues.
-- `flutter test --no-pub`: 187 tests passed.
+- `flutter test --no-pub`: 229 tests passed.
 - `flutter build apk --debug --no-pub`: succeeded.
-- All ten scenarios in [MANUAL_TESTING.md](MANUAL_TESTING.md) were run on the emulator against QA with disposable data on 2026-11-07, then the data was deleted. Later input-border and app-bar sizing changes were checked on the emulator by screenshots and by measuring the 48 dp controls; the ten scenarios were not repeated in full.
+
+The ten manual scenarios in [MANUAL_TESTING.md](MANUAL_TESTING.md) were last run on an Android 15 emulator against QA with disposable data on 2026-11-07, then the data was deleted. Later input-border, app-bar, and appearance changes have automated coverage but were not part of that manual run; the ten scenarios have not been repeated in full since.
 
 Test suites cover authentication and validation, environment isolation and sessions, projects, Kanban boards, tasks, members and summaries, global analytics, themes, and compact layouts. See [AGENTS.md](AGENTS.md) for the file map.
 
@@ -82,6 +83,6 @@ Test suites cover authentication and validation, environment isolation and sessi
 - The backend has no reorder routes, so moves always append to the destination column. Comments, labels, attachments, and checklists are not supported.
 - A new project with no columns returns an error from the column endpoint; the app shows a recovery message with **Tambah kolom**.
 - If the saved session cannot be cleared, the app warns that it may return after a restart.
-- If theme preferences cannot be read, the app falls back to System; if they cannot be saved, the new theme applies until restart and a warning is shown.
+- If theme preferences cannot be read, the app falls back to System, the Biru palette, and the default logo; if they cannot be saved, the new appearance applies until restart and a warning is shown.
 - There is no account-deletion feature, so accounts created during testing stay on QA.
 - Android release builds use debug signing and need proper signing before distribution.

@@ -28,11 +28,11 @@ flowchart LR
 
 | Layer | Files | Responsibility |
 | --- | --- | --- |
-| Entry and routing | `lib/main.dart`, `lib/app_navigation.dart` | Initializes the saved theme, builds `MaterialApp` with `AppTheme.light` / `AppTheme.dark`, defines `/login`, `/signup`, `/`, and `/projects/:id`. Protected routes load the session first and show the login page when it is missing. |
+| Entry and routing | `lib/main.dart`, `lib/app_navigation.dart` | Initializes the saved appearance, builds `MaterialApp` with palette-aware `AppTheme.lightFor` / `AppTheme.darkFor`, defines `/login`, `/signup`, `/`, and `/projects/:id`. Protected routes load the session first and show the login page when it is missing. |
 | Screens | `lib/System Login/`, `lib/Home/`, `lib/Project/`, `lib/Task/`, `lib/Dashboard/`, `lib/Modal/` | Stateful widgets with local state and controllers. Dialogs own their own pending state. |
 | Services | `lib/network.dart`, `lib/Task/task_service.dart`, `lib/Dashboard/dashboard_service.dart` | Static methods that build endpoints, parse responses into models (`lib/Task/task_models.dart`), and surface errors. |
 | Environment and session | `lib/environment_config.dart`, `lib/session_manager.dart` | Selects the backend, serializes session writes, and tags every saved session with its environment. |
-| Design system | `lib/ui/Theme/` | `AppTheme` (Material 3 color roles, type scale, component themes), `ThemeNotifier` (persisted System/Light/Dark), `ThemeToggle` (chooser dialog). |
+| Design system | `lib/ui/Theme/` | `AppTheme` (Material 3 color roles, type scale, component themes), `AppPalette` (curated accent palettes and brand marks), `ThemeNotifier` (persisted mode, palette, and brand), `AppearanceDialog` (chooser), `AppBrandMarkView` (in-app symbol). |
 
 There is no dependency injection or state-management package. Networking, session, and theme access use static members.
 
@@ -101,8 +101,8 @@ sequenceDiagram
 
 ## Theming and Layout
 
-`AppTheme` defines explicit Material 3 color schemes for light and dark, a `ThemeExtension` for status colors, and shared component themes (inputs, buttons, cards, dialogs, snackbars). `ThemeNotifier.themeMode` feeds `MaterialApp.themeMode`; `System` follows the operating system. The Home project list and the dialogs switch at 600 dp (list or full-screen dialog below, table or bounded dialog above); the Kanban board sizes its column panels by clamping to the available width. Only the Home project and analytics bodies are capped at 1120 dp wide.
+`AppTheme` defines explicit Material 3 light and dark color schemes, a `ThemeExtension` for status colors, and shared component themes (inputs, buttons, cards, dialogs, snackbars). Curated accent palettes (`Biru`, `Hijau`, `Ungu`, `Senja`, `Pink Lembut`, `Grafit`) override only the primary/secondary/tertiary roles through `lightFor`/`darkFor`; neutral surfaces and semantic success/warning/error colors stay shared. `ThemeNotifier` persists `APP_THEME_MODE`, `APP_THEME_PALETTE`, and `APP_BRAND`, and its merged `appearance` listenable rebuilds `MaterialApp`; `System` follows the operating system. The appearance dialog also chooses an in-app brand mark; the native launcher icon is not runtime-customisable. The Home project list and the dialogs switch at 600 dp (list or full-screen dialog below, table or bounded dialog above); the Kanban board sizes its column panels by clamping to the available width. Only the Home project and analytics bodies are capped at 1120 dp wide.
 
 ## Testing Approach
 
-Widget and service tests use `MockClient` and in-memory `SharedPreferences`. They cover session isolation and stale responses, protected navigation, project and Kanban workflows, members and summaries, analytics edge cases, theme persistence and System mode, and compact or large-text layouts. The manual checklist in [MANUAL_TESTING.md](../MANUAL_TESTING.md) covers the live QA backend.
+Widget and service tests use `MockClient` and in-memory `SharedPreferences`. They cover session isolation and stale responses, protected navigation, project and Kanban workflows, members and summaries, analytics edge cases, theme persistence and System mode, palette contrast for every palette in both brightnesses, appearance-dialog selection, and compact or large-text layouts. The manual checklist in [MANUAL_TESTING.md](../MANUAL_TESTING.md) covers the live QA backend.
