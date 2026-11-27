@@ -19,6 +19,8 @@ class TaskColumn extends StatelessWidget {
     required this.onDelete,
     required this.canAcceptDrop,
     required this.onDrop,
+    this.onQuickComplete,
+    this.canQuickComplete,
   });
 
   final KanbanColumn column;
@@ -34,6 +36,8 @@ class TaskColumn extends StatelessWidget {
   final VoidCallback onDelete;
   final bool Function(TaskCard task) canAcceptDrop;
   final Future<void> Function(TaskCard task, String destinationColumnId) onDrop;
+  final void Function(TaskCard task)? onQuickComplete;
+  final bool Function(TaskCard task)? canQuickComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -194,27 +198,41 @@ class TaskColumn extends StatelessWidget {
         task: tasks[index],
         enabled: !busy,
         onTap: () => onOpen(tasks[index]),
+        canQuickComplete: canQuickComplete?.call(tasks[index]) ?? false,
+        onQuickComplete: onQuickComplete,
       ),
     );
   }
 }
 
-class _TaskCardTile extends StatelessWidget {
+class _TaskCardTile extends StatefulWidget {
   const _TaskCardTile({
     required this.task,
     required this.enabled,
     required this.onTap,
+    this.canQuickComplete = false,
+    this.onQuickComplete,
   });
 
   final TaskCard task;
   final bool enabled;
   final VoidCallback onTap;
+  final bool canQuickComplete;
+  final void Function(TaskCard task)? onQuickComplete;
+
+  @override
+  State<_TaskCardTile> createState() => _TaskCardTileState();
+}
+
+class _TaskCardTileState extends State<_TaskCardTile> {
+  bool _isHovering = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     return LongPressDraggable<TaskCard>(
-      data: task,
-      maxSimultaneousDrags: enabled ? 1 : 0,
+      data: widget.task,
+      maxSimultaneousDrags: widget.enabled ? 1 : 0,
       feedback: Material(
         elevation: 6,
         borderRadius: BorderRadius.circular(10),
@@ -227,22 +245,71 @@ class _TaskCardTile extends StatelessWidget {
 
   Widget _card(BuildContext context, {bool dragging = false}) {
     final theme = Theme.of(context);
-    final preview = task.description.trim();
-    final dueDate = _calendarDate(task.dueDate);
+    final preview = widget.task.description.trim();
+    final dueDate = _calendarDate(widget.task.dueDate);
+    final canAct = widget.enabled && !dragging;
+    final activeGreen = canAct && (_isHovering || _isPressed);
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
-        onTap: enabled && !dragging ? onTap : null,
+        onTap: canAct ? widget.onTap : null,
         borderRadius: BorderRadius.circular(10),
         child: Semantics(
           button: true,
-          label: 'Tugas ${task.displayTitle}',
+          label: 'Tugas ${widget.task.displayTitle}',
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(task.displayTitle, style: theme.textTheme.titleMedium),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.task.displayTitle,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ),
+                    if (widget.canQuickComplete && widget.onQuickComplete != null)
+                      Tooltip(
+                        message: 'Tandai selesai',
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          hoverColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          onHover: (hovering) {
+                            if (!canAct) return;
+                            if (_isHovering != hovering) {
+                              setState(() => _isHovering = hovering);
+                            }
+                          },
+                          onHighlightChanged: (pressed) {
+                            if (!canAct) return;
+                            if (_isPressed != pressed) {
+                              setState(() => _isPressed = pressed);
+                            }
+                          },
+                          onTap: canAct
+                              ? () => widget.onQuickComplete!(widget.task)
+                              : null,
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: Icon(
+                              activeGreen
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
+                              size: 20,
+                              color: activeGreen
+                                  ? Colors.green
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
                 if (preview.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(

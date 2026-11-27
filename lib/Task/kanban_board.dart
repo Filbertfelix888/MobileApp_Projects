@@ -615,6 +615,74 @@ class _KanbanBoardState extends State<KanbanBoard> {
     }
   }
 
+  bool _isBacklogColumn(KanbanColumn column) {
+    final normalized = column.displayTitle.trim().toLowerCase();
+    return normalized == 'backlog';
+  }
+
+  KanbanColumn? _findReviewColumn() {
+    for (final column in _columns) {
+      final normalized = column.displayTitle.trim().toLowerCase();
+      if (normalized == 'review' || normalized.contains('review')) {
+        return column;
+      }
+    }
+    return null;
+  }
+
+  KanbanColumn? _completionTargetColumn(String currentColumnId) {
+    if (_columns.length < 2) return null;
+    final current = _columnForPublicId(currentColumnId);
+    if (current == null) return null;
+
+    final lastColumn = _columns.last;
+    if (lastColumn.publicId == currentColumnId) return null;
+
+    final reviewColumn = _findReviewColumn();
+    if (reviewColumn != null && reviewColumn.publicId != lastColumn.publicId) {
+      if (_isBacklogColumn(current)) return null;
+      if (current.publicId == reviewColumn.publicId) {
+        return lastColumn;
+      }
+      return reviewColumn;
+    }
+
+    if (_isBacklogColumn(current)) return null;
+    return lastColumn;
+  }
+
+  bool _canQuickComplete(String columnId, TaskCard task) {
+    if (_workspaceLocked || _sessionStale) return false;
+    if (_taskErrors[columnId] != null ||
+        !(_tasksByColumn.containsKey(columnId))) {
+      return false;
+    }
+    final target = _completionTargetColumn(columnId);
+    if (target == null) return false;
+    if (_taskErrors[target.publicId] != null ||
+        !(_tasksByColumn.containsKey(target.publicId))) {
+      return false;
+    }
+    final tasksInCol = _tasksByColumn[columnId] ?? const [];
+    return tasksInCol.any((item) => item.publicId == task.publicId);
+  }
+
+  Future<void> _quickCompleteTask(String sourceColumnId, TaskCard task) async {
+    if (!_canQuickComplete(sourceColumnId, task)) return;
+    final target = _completionTargetColumn(sourceColumnId);
+    if (target == null) return;
+    final moved = await _moveTask(task.publicId, sourceColumnId, target.publicId);
+    if (moved && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '"${task.displayTitle}" dipindahkan ke ${target.displayTitle}',
+          ),
+        ),
+      );
+    }
+  }
+
   KanbanColumn? _columnForPublicId(String id) {
     for (final column in _columns) {
       if (column.publicId == id) return column;
@@ -704,6 +772,10 @@ class _KanbanBoardState extends State<KanbanBoard> {
                   onCreate: () => _createTask(column),
                   onRename: () => _renameColumn(column),
                   onDelete: () => _deleteColumn(column),
+                  canQuickComplete: (task) =>
+                      _canQuickComplete(column.publicId, task),
+                  onQuickComplete: (task) =>
+                      _quickCompleteTask(column.publicId, task),
                   canAcceptDrop: (task) =>
                       !_workspaceLocked &&
                       _tasksByColumn.containsKey(column.publicId) &&
