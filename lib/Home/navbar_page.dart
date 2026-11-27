@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../environment_config.dart';
 import '../session_manager.dart';
+import '../ui/Theme/app_brand_mark.dart';
 import '../ui/Theme/theme_tonggle.dart'; // Import komponen ThemeToggle
 
 class Navbar extends StatefulWidget implements PreferredSizeWidget {
@@ -59,23 +60,7 @@ class _NavbarState extends State<Navbar> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset(
-                      'assets/PM_Logo.png',
-                      width: 24,
-                      height: 24,
-                      errorBuilder: (context, error, stackTrace) {
-                        final colors = Theme.of(context).colorScheme;
-                        return SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Icon(
-                            Icons.business,
-                            color: colors.primary,
-                            size: 20,
-                          ),
-                        );
-                      },
-                    ),
+                    const AppBrandMarkView(size: 24),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(

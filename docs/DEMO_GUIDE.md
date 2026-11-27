@@ -17,7 +17,7 @@ Fitur utama:
 | Anggota dan penanggung jawab | Menentukan siapa mengerjakan tugas apa |
 | Ringkasan papan | Jumlah tugas per kolom dan beban per orang |
 | Analitik global | Jumlah penugasan dari seluruh proyek |
-| Tema Sistem/Terang/Gelap | Tampilan nyaman di kondisi cahaya berbeda |
+| Tema dan palet | Mode Sistem/Terang/Gelap, enam palet warna, dan simbol aplikasi |
 
 ## 2. Persiapan Sebelum Demo
 
@@ -37,7 +37,7 @@ Urutan: Masuk → Proyek → Kanban → Tugas → Pindah → Tugaskan → Analit
 5. **Pindah.** Di tugas, buka **Pindahkan tugas** dan pilih **Doing**. Atau tahan kartu tugas lalu seret ke kolom lain.
 6. **Tugaskan.** Tekan **Anggota**, cari akun kedua, centang, lalu **Tambah (1)**. Buka tugas, centang anggota di **Penanggung jawab**, lalu **Tugaskan (1)**.
 7. **Analitik.** Buka tab **Ringkasan** untuk melihat jumlah tugas per kolom dan beban per orang. Kembali ke daftar proyek, buka **Analitik global** untuk melihat total penugasan.
-8. **Tema.** Tekan ikon tema di kanan atas, pilih **Gelap**, lalu **Terang**, lalu **Sistem**. Tutup dan buka aplikasi untuk menunjukkan pilihan tersimpan.
+8. **Tema.** Tekan ikon tema di kanan atas. Pilih **Gelap**, lalu **Terang**, lalu **Sistem**. Ganti **Palet warna** ke **Hijau** dan **Simbol aplikasi** ke **Roket**, lalu tekan **Selesai**. Tutup dan buka aplikasi untuk menunjukkan pilihan tersimpan.
 9. **Keluar.** Tekan ikon akun, pilih **Logout**. Layar masuk tampil; tombol Kembali tidak membuka halaman proyek.
 
 Setelah demo, hapus proyek tes lewat ikon tempat sampah di daftar proyek agar data QA tetap rapi.
@@ -74,7 +74,7 @@ Belum. Backend belum punya fitur mengurutkan; tugas yang dipindah selalu masuk d
 Backend menghitung penugasan dari semua proyek dan mengelompokkan berdasarkan nama. Aplikasi menampilkan apa adanya dan menuliskan cakupan itu di layar.
 
 **Bagaimana kualitas aplikasi diuji?**
-Pada 2026-11-08: analisis kode tanpa temuan, 187 tes otomatis lulus, dan build APK debug berhasil. Sepuluh skenario di `MANUAL_TESTING.md` dijalankan di emulator Android dengan backend QA pada 2026-11-07; perubahan kecil setelahnya (batas input dan ukuran tombol bilah atas) dicek lewat tangkapan layar dan pengukuran, bukan diulang penuh.
+Pada 2026-11-24: analisis kode tanpa temuan, 229 tes otomatis lulus, dan build APK debug berhasil. Sepuluh skenario di `MANUAL_TESTING.md` dijalankan di emulator Android dengan backend QA pada 2026-11-07; perubahan setelahnya (batas input, ukuran tombol bilah atas, dan kustomisasi tampilan) dicek lewat tes otomatis, bukan diulang penuh.
 
 **Apa yang belum ada?**
 Komentar, label, lampiran, daftar periksa, pengurutan, dan penghapusan akun. Build rilis belum ditandatangani.

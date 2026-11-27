@@ -38,17 +38,19 @@ class MyApp extends StatelessWidget {
         arguments: warning,
       );
     });
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeNotifier.themeMode,
-      builder: (context, currentMode, child) {
+    return AnimatedBuilder(
+      animation: ThemeNotifier.appearance,
+      builder: (context, child) {
+        final themeMode = ThemeNotifier.themeMode.value;
+        final palette = ThemeNotifier.palette.value;
         return MaterialApp(
           navigatorKey: _navigatorKey,
           title: 'Mobile App',
           debugShowCheckedModeBanner: false,
-          themeMode: currentMode,
+          themeMode: themeMode,
 
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
+          theme: AppTheme.lightFor(palette),
+          darkTheme: AppTheme.darkFor(palette),
 
           initialRoute: '/',
           routes: {

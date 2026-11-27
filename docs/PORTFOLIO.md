@@ -10,7 +10,7 @@ Provide mobile access to an existing project management system as a companion to
 - Project list with search, pagination, creation, deletion, and a protected detail page.
 - Kanban board with columns and tasks; tasks move between columns via a selector or drag and drop.
 - Board members, task assignees, a board summary, and global workload analytics.
-- System, Light, and Dark themes that persist across restarts.
+- System, Light, and Dark appearance modes plus six curated accent palettes and selectable in-app brand symbols that persist across restarts.
 
 ## Screens
 
@@ -30,10 +30,10 @@ Technology: Flutter and Dart (Material 3), `http`, `shared_preferences`, `flutte
 
 The interface follows a minimalist productivity direction on Material 3:
 
-- One restrained blue accent, flat surfaces with 1 px borders, and a single type scale using the platform font.
+- A restrained accent system with six curated palettes, flat surfaces with 1 px borders, and a single type scale using the platform font.
 - Explicit light and dark color schemes (not an inversion), designed together, plus a status-color extension.
 - Phone-first layouts: project rows instead of a wide table, full-screen task and member dialogs, and a collapsible project-details panel so the board stays visible.
-- A theme chooser (System, Light, Dark) reachable from the login screen onward.
+- An appearance chooser (mode, palette, brand symbol) reachable from the login screen onward.
 - Buttons with a 48 dp minimum height and text that wraps at 2.0× font scale.
 
 ## Technical Challenges
@@ -46,12 +46,13 @@ The interface follows a minimalist productivity direction on Material 3:
 
 ## Verification
 
-Run on 2026-11-07:
+Latest automated checks on 2026-11-24:
 
 - `flutter analyze --no-pub`: no issues.
-- `flutter test --no-pub`: 187 tests passed.
+- `flutter test --no-pub`: 229 tests passed.
 - `flutter build apk --debug --no-pub`: succeeded.
-- Ten manual scenarios (registration, session, projects, Kanban, tasks, moves including drag and drop, members and assignees, summary and analytics, themes and large text, cleanup) were run on an Android 15 emulator against the QA backend with disposable data on 2026-11-07. Later input-border and app-bar sizing changes were checked on the emulator by screenshots and measurement, not by repeating every scenario.
+
+Ten manual scenarios (registration, session, projects, Kanban, tasks, moves including drag and drop, members and assignees, summary and analytics, themes and large text, cleanup) were run on an Android 15 emulator against the QA backend with disposable data on 2026-11-07. The appearance customization changes since then have automated coverage but the manual scenarios were not repeated in full.
 
 ## Limitations
 

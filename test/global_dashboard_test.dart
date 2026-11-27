@@ -224,7 +224,7 @@ void main() {
 
       expect(ThemeNotifier.themeMode.value, ThemeMode.dark);
       expect(
-        find.textContaining('Tema berubah, tetapi gagal disimpan'),
+        find.textContaining('Tampilan berubah, tetapi gagal disimpan'),
         findsOneWidget,
       );
       expect((await store.getAll())['flutter.APP_THEME_MODE'], 'light');
@@ -300,11 +300,17 @@ void main() {
 
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
 
-    expect(find.text('Tampilan'), findsNothing);
+    expect(find.text('Tampilan'), findsOneWidget);
     expect(ThemeNotifier.themeMode.value, ThemeMode.light);
+
+    await tester.tap(find.byTooltip('Tutup'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tampilan'), findsNothing);
   });
   test('dashboard service parses raw workload array only', () async {
     Network.client = MockClient((request) async {
