@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
+import '../Profile/edit_profile_page.dart';
+import '../Profile/profile_store.dart';
 import '../environment_config.dart';
-import '../session_manager.dart';
 import '../ui/Theme/app_brand_mark.dart';
 import '../ui/Theme/theme_tonggle.dart'; // Import komponen ThemeToggle
 
@@ -16,7 +19,7 @@ class Navbar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _NavbarState extends State<Navbar> {
-  String _userName = 'User';
+  ProfileData _profile = const ProfileData(name: 'User', email: '');
 
   @override
   void initState() {
@@ -26,18 +29,51 @@ class _NavbarState extends State<Navbar> {
 
   Future<void> _loadUserData() async {
     try {
-      final environment = await EnvironmentConfig.snapshot();
-      final session = await SessionManager.getSessionForEnvironment(
-        environment.environment,
-      );
-      if (mounted && session != null && session['user'] != null) {
+      final loaded = await ProfileStore.loadProfile();
+      if (mounted) {
         setState(() {
-          _userName = session['user']['name'] ?? 'User';
+          _profile = loaded;
         });
       }
     } catch (_) {
       // Keep the default user label when persisted session state is unavailable.
     }
+  }
+
+  Future<void> _openEditProfile() async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => const EditProfilePage()),
+    );
+    if (updated == true) {
+      await _loadUserData();
+    }
+  }
+
+  Widget _buildMenuAvatar({required double radius, required double fontSize}) {
+    final photoBytes = _profile.avatarBytes;
+    if (photoBytes != null) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: Color(_profile.avatarColorValue),
+        backgroundImage: MemoryImage(Uint8List.fromList(photoBytes)),
+      );
+    }
+    final presetIcon = _profile.avatarPreset.icon;
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Color(_profile.avatarColorValue),
+      child: presetIcon != null
+          ? Icon(presetIcon, size: radius + 2, color: Colors.white)
+          : Text(
+              _profile.initials,
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+    );
   }
 
   @override
@@ -85,13 +121,19 @@ class _NavbarState extends State<Navbar> {
                       minimumSize: const Size.square(48),
                       padding: EdgeInsets.zero,
                     ),
-                    icon: Icon(
-                      Icons.account_circle,
-                      size: 28,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    icon: _profile.hasCustomAvatar
+                        ? _buildMenuAvatar(radius: 14, fontSize: 11)
+                        : Icon(
+                            Icons.account_circle,
+                            size: 28,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                     onSelected: (value) async {
-                      if (value == 'logout') {
+                      if (value == 'profile') {
+                        await _openEditProfile();
+                      } else if (value == 'logout') {
                         final messenger = ScaffoldMessenger.of(context);
                         final errorColor = Theme.of(context).colorScheme.error;
                         String? failure;
@@ -127,9 +169,36 @@ class _NavbarState extends State<Navbar> {
                           value: 'profile',
                           child: Row(
                             children: [
-                              const Icon(Icons.person_outline, size: 20),
-                              const SizedBox(width: 8),
-                              Flexible(child: Text(_userName)),
+                              _profile.hasCustomAvatar
+                                  ? _buildMenuAvatar(radius: 12, fontSize: 10)
+                                  : const Icon(Icons.person_outline, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _profile.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      _profile.role.isNotEmpty
+                                          ? '${_profile.role} · Edit profil'
+                                          : 'Edit profil',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelSmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),

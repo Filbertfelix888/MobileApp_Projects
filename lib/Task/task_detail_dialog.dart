@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../environment_config.dart';
 import '../network.dart';
+import 'task_comment_section.dart';
+import 'task_comment_store.dart';
 import 'task_models.dart';
 import 'task_service.dart';
 
@@ -61,6 +63,8 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> {
   int _requestId = 0;
   bool _syncingDrafts = false;
   bool _viewStale = false;
+  bool _showComments = false;
+  int _commentCount = 0;
 
   bool get _current =>
       mounted &&
@@ -81,8 +85,18 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> {
     _viewColumnId = widget.column.publicId;
     _members = widget.members;
     _loadTask();
+    _loadCommentCount();
     _title.addListener(_draftChanged);
     _description.addListener(_draftChanged);
+  }
+
+  Future<void> _loadCommentCount() async {
+    try {
+      final comments = await TaskCommentStore.getComments(_viewTaskId);
+      if (mounted) {
+        setState(() => _commentCount = comments.length);
+      }
+    } catch (_) {}
   }
 
   void _markViewStale() {
@@ -591,7 +605,7 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> {
       child: Column(
         children: [
           AppBar(
-            title: const Text('Detail tugas'),
+            title: Text(_showComments ? 'Diskusi tugas' : 'Detail tugas'),
             backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
@@ -600,7 +614,39 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> {
               onPressed: _pending ? null : () => Navigator.of(context).pop(),
               icon: const Icon(Icons.close),
             ),
+            actions: [
+              if (task != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: TextButton.icon(
+                    onPressed: () =>
+                        setState(() => _showComments = !_showComments),
+                    icon: Icon(
+                      _showComments
+                          ? Icons.edit_note_outlined
+                          : Icons.forum_outlined,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _showComments ? 'Detail' : 'Diskusi ($_commentCount)',
+                    ),
+                  ),
+                ),
+            ],
           ),
+          if (_showComments && task != null)
+            Expanded(
+              child: TaskCommentSection(
+                taskId: task.publicId,
+                readOnly: readOnly,
+                onCountChanged: (count) {
+                  if (mounted && _commentCount != count) {
+                    setState(() => _commentCount = count);
+                  }
+                },
+              ),
+            )
+          else ...[
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -885,6 +931,7 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> {
                 ),
               ),
             ),
+          ],
           if (_pending) const LinearProgressIndicator(),
         ],
       ),

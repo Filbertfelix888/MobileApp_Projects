@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'System Login/login_page.dart';
 import 'System Login/register_page.dart';
 import 'Home/home_page.dart';
+import 'Profile/edit_profile_page.dart';
 import 'Project/project_detail_page.dart';
 import 'app_navigation.dart';
 import 'environment_config.dart';
@@ -58,6 +59,10 @@ class MyApp extends StatelessWidget {
             '/signup': (context) => const RegisterPage(),
             '/': (context) =>
                 _ProtectedRoute(loginPage: loginPage, child: homePage),
+            '/profile': (context) => _ProtectedRoute(
+              loginPage: loginPage,
+              child: const EditProfilePage(),
+            ),
           },
           onGenerateRoute: (settings) {
             final name = settings.name ?? '';
