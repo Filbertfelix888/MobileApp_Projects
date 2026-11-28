@@ -9,6 +9,7 @@ import 'task_service.dart';
 import 'task_detail_dialog.dart';
 import 'board_members_dialog.dart';
 import 'task_summary.dart';
+import 'local_notification_service.dart';
 
 class KanbanBoard extends StatefulWidget {
   const KanbanBoard({
@@ -223,6 +224,16 @@ class _KanbanBoardState extends State<KanbanBoard> {
         _taskErrors[id] = null;
       });
       _maybeLoadSummary();
+      if (mounted) {
+        final isFinalColumn =
+            _columns.isNotEmpty && _columns.last.publicId == column.publicId;
+        await LocalNotificationService.instance.checkTomorrowDeadlines(
+          context: context,
+          tasks: unique,
+          currentColumnTitle: column.displayTitle,
+          isFinalColumn: isFinalColumn,
+        );
+      }
     } catch (error) {
       if (!_isCurrent ||
           boardId != widget.boardId ||
@@ -669,16 +680,16 @@ class _KanbanBoardState extends State<KanbanBoard> {
 
   Future<void> _quickCompleteTask(String sourceColumnId, TaskCard task) async {
     if (!_canQuickComplete(sourceColumnId, task)) return;
+    final source = _columnForPublicId(sourceColumnId);
     final target = _completionTargetColumn(sourceColumnId);
-    if (target == null) return;
+    if (source == null || target == null) return;
     final moved = await _moveTask(task.publicId, sourceColumnId, target.publicId);
     if (moved && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '"${task.displayTitle}" dipindahkan ke ${target.displayTitle}',
-          ),
-        ),
+      await LocalNotificationService.instance.notifyTaskMoved(
+        context: context,
+        task: task,
+        fromColumnTitle: source.displayTitle,
+        toColumnTitle: target.displayTitle,
       );
     }
   }
